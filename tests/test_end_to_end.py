@@ -74,7 +74,7 @@ def completed_run(tmp_path_factory):
     root = tmp_path_factory.mktemp("e2e")
     config_path = root / "config.toml"
     config_path.write_text(CONFIG, encoding="utf-8")
-    source = InMemoryRealSource(400)
+    source = InMemoryRealSource(400, seed=17)
     model = FakeLanguageModel(source.load())
     exit_code = main(
         ["run", "--config", str(config_path)],
@@ -90,13 +90,17 @@ def test_run_writes_every_artifact(completed_run):
     assert [name for name in EXPECTED_FILES if not (run_dir / name).is_file()] == []
 
 
-def test_groups_never_cross_roles(completed_run):
+def test_groups_never_cross_roles_and_every_role_has_both_strata(completed_run):
     run_dir, _ = completed_run
+    rows = _rows(run_dir / "items.csv")
     roles_by_group: dict[str, set[str]] = {}
-    for row in _rows(run_dir / "items.csv"):
+    for row in rows:
         roles_by_group.setdefault(row["group_id"], set()).add(row["role"])
     assert all(len(roles) == 1 for roles in roles_by_group.values())
-    assert set().union(*roles_by_group.values()) == {"discovery", "cal_prob", "cal_gate", "test"}
+    strata_by_role: dict[str, set[str]] = {}
+    for row in rows:
+        strata_by_role.setdefault(row["role"], set()).add(row["stratum"])
+    assert strata_by_role == {role: {"real", "fictional"} for role in ("discovery", "cal_prob", "cal_gate", "test")}
 
 
 def test_selected_threshold_obeys_the_certificate(completed_run):

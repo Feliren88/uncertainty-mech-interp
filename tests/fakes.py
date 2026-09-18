@@ -10,14 +10,14 @@ from scipy.special import log_softmax
 from uncertainty_mech.application.ports import Readings, Steering
 from uncertainty_mech.domain.prompts import ChatPrompt
 from uncertainty_mech.domain.questions import OPTION_LETTERS, HealthQuestion, Stratum
-from uncertainty_mech.domain.splits import stable_unit
+from uncertainty_mech.domain.splits import sample_questions, stable_unit
 
 
 class InMemoryRealSource:
-    """Synthetic "real" questions with known answers."""
+    """Synthetic "real" questions with known answers, sampled from a larger pool like MedQA."""
 
-    def __init__(self, n_items: int) -> None:
-        self._questions = [
+    def __init__(self, n_items: int, seed: int) -> None:
+        pool = [
             HealthQuestion(
                 item_id=f"real-{i:04d}",
                 group_id=f"real-{i:04d}",
@@ -26,8 +26,9 @@ class InMemoryRealSource:
                 options=tuple(f"Step {i}-{letter}" for letter in OPTION_LETTERS),
                 answer_index=i % len(OPTION_LETTERS),
             )
-            for i in range(n_items)
+            for i in range(3 * n_items)
         ]
+        self._questions = sample_questions(pool, n_items, seed)
 
     def load(self) -> list[HealthQuestion]:
         return list(self._questions)

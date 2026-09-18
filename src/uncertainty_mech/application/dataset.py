@@ -55,6 +55,9 @@ def prepare_dataset(questions: Sequence[HealthQuestion], config: RunConfig) -> D
     if len(set(ids)) != len(ids):
         raise ValueError("item ids must be unique")
     roles = assign_roles(questions, config.data.proportions, config.seed)
+    empty = [role.value for role, share in config.data.proportions.items() if share > 0 and role not in roles]
+    if empty:
+        raise ValueError(f"no items were assigned to roles {empty}; increase the sample or check the sampler")
     return Dataset(
         questions=tuple(questions),
         roles=np.array([role.value for role in roles]),

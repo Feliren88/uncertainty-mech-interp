@@ -1,0 +1,31 @@
+# Tiny GPU run that checks the real adapters before the full test run.
+run_id = "health-llama31-8b-smoke"
+seed = 17
+output_root = "../runs"
+
+[data]
+real_repo = "GBaker/MedQA-USMLE-4-options"
+real_revision = "0fb93dd23a7339b6dcd27e241cb9b5eca62d4d18"
+real_file = "phrases_no_exclude_train.jsonl"
+n_real = 60
+n_fictional_entities = 20
+
+[data.proportions]
+discovery = 0.6
+cal_prob = 0.1
+cal_gate = 0.1
+test = 0.2
+
+[model]
+name = "meta-llama/Llama-3.1-8B-Instruct"
+revision = "0e9e39f249a16976918f6564b8830bc894c89659"
+dtype = "bfloat16"
+batch_size = 16
+
+[gate]
+target_risk = 0.10
+delta = 0.05
+
+[steering]
+n_items = 12
+n_random = 1

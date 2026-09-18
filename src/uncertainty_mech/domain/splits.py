@@ -14,6 +14,17 @@ def stable_unit(key: str, seed: int) -> float:
     return int.from_bytes(digest[:8], "big") / 2**64
 
 
+def sample_questions(questions: Sequence[HealthQuestion], n: int, seed: int) -> list[HealthQuestion]:
+    """Seeded sample of n items.
+
+    Uses its own hash stream. Ranking by the role hash instead would keep only
+    the groups that fall in the first role.
+    """
+    if len(questions) < n:
+        raise ValueError(f"asked for {n} questions, only {len(questions)} available")
+    return sorted(questions, key=lambda question: stable_unit(f"sample:{question.group_id}", seed))[:n]
+
+
 def assign_roles(questions: Sequence[HealthQuestion], proportions: Mapping[Role, float], seed: int) -> list[Role]:
     """Give every item the role of its group, so related items never straddle roles."""
     if abs(sum(proportions.values()) - 1.0) > 1e-9:
