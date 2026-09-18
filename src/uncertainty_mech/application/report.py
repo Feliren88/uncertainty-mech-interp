@@ -25,7 +25,7 @@ METHOD_LABELS = {
     SignalSet.COMBINED.value: "Combined gate (primary)",
 }
 
-LIMITS = """- One model (Llama 3.1 8B Instruct), one prompt format and one sample of MedQA. Free-text answers would need new calibration.
+LIMITS = """- One model ({model}), one prompt format and one sample of MedQA. Free-text answers would need new calibration.
 - The certificate assumes calibration and test questions are independent draws from the same mix of real and invented items. A new mix, model revision or prompt voids it.
 - Invented entities are easier to spot than wrong answers to real questions, so read the real-only table before the pooled one.
 - MedQA is public and may be in the model's pretraining data.
@@ -164,7 +164,7 @@ def _markdown(results: RunResults) -> str:
         "## Data",
         _data(results),
         "## Limits",
-        LIMITS,
+        LIMITS.format(model=results.model_name),
     ]
     return "\n\n".join(sections) + "\n"
 
