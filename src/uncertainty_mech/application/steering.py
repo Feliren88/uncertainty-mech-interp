@@ -33,14 +33,24 @@ class SteeringResult:
     layer: int
     n_items: int
     direction_norm: float
+    residual_norm: float
     identity_max_abs_diff: float
     identity_ok: bool
     rows: list[dict[str, Any]]
 
 
 def run_steering_check(
-    model: LanguageModel, dataset: Dataset, direction: np.ndarray, layer: int, config: RunConfig
+    model: LanguageModel,
+    dataset: Dataset,
+    layer_residuals: np.ndarray,
+    errors: np.ndarray,
+    layer: int,
+    config: RunConfig,
 ) -> SteeringResult:
+    """Direction and norms come from discovery rows; behavior is read on test prompts."""
+    discovery = dataset.mask(Role.DISCOVERY)
+    direction = error_direction(layer_residuals[discovery], errors[discovery])
+    residual_norm = float(np.median(np.linalg.norm(layer_residuals[discovery], axis=1)))
     rng = np.random.default_rng(config.seed)
     test_indices = np.flatnonzero(dataset.mask(Role.TEST))
     picks = np.sort(rng.choice(test_indices, size=min(config.steering.n_items, len(test_indices)), replace=False))
@@ -68,6 +78,7 @@ def run_steering_check(
         layer=layer,
         n_items=len(questions),
         direction_norm=norm,
+        residual_norm=residual_norm,
         identity_max_abs_diff=identity_diff,
         identity_ok=identity_diff <= config.steering.identity_tolerance,
         rows=rows,

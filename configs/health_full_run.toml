@@ -3,6 +3,8 @@
 # bound of 15.9%. This run uses all unique MedQA training questions and gives
 # cal_gate 30% of groups. Discovery CV in the pilot picked C = 0.01, the edge
 # of the grid, so the grid now extends down to 0.0001. The target is unchanged.
+# Steering at dose 1 barely moved P(E); dose 1 is about 15% of the residual norm,
+# so this run adds exploratory doses up to 4.
 run_id = "health-llama31-8b-full-run"
 seed = 17
 output_root = "../runs"
@@ -36,7 +38,7 @@ target_risk = 0.10
 delta = 0.05
 
 [steering]
-doses = [-1.0, -0.5, 0.0, 0.5, 1.0]
+doses = [-4.0, -2.0, -1.0, 0.0, 1.0, 2.0, 4.0]
 n_items = 200
 n_random = 3
 identity_tolerance = 1e-4

@@ -18,7 +18,7 @@ from uncertainty_mech.application.ports import FigureWriter, LanguageModel, RunS
 from uncertainty_mech.application.report import write_report
 from uncertainty_mech.application.results import RunResults
 from uncertainty_mech.application.risk_model import SignalSet, build_features, sweep_layers
-from uncertainty_mech.application.steering import error_direction, run_steering_check
+from uncertainty_mech.application.steering import run_steering_check
 from uncertainty_mech.domain.grading import chosen_indices, error_labels, output_features
 from uncertainty_mech.domain.questions import HealthQuestion, Role
 
@@ -90,9 +90,7 @@ def run_pipeline(
 
     evaluation = evaluate_on_test(dataset, chosen, errors, risks, gates, with_abstain.letter_logprobs)
     log.info("Steering check at layer %d", layer)
-    steering = run_steering_check(
-        model, dataset, error_direction(layer_residuals[discovery], errors[discovery]), layer, config
-    )
+    steering = run_steering_check(model, dataset, layer_residuals, errors, layer, config)
 
     results = RunResults(
         config=config,

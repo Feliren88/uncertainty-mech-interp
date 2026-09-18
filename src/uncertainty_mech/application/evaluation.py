@@ -17,6 +17,7 @@ from uncertainty_mech.domain.questions import OPTION_LETTERS, Role, Stratum
 
 NO_GATE = "no_gate"
 PROMPT_ONLY = "prompt_only"
+INDEPENDENT = "independent_units"
 
 
 @dataclass(frozen=True)
@@ -45,6 +46,8 @@ def evaluate_on_test(
         "all": test,
         "real": test & (dataset.strata == Stratum.REAL.value),
         "fictional": test & (dataset.strata == Stratum.FICTIONAL.value),
+        # One unit per group: the only rows whose binomial bound is valid.
+        INDEPENDENT: test & dataset.canonical,
     }
     prompt_choice = chosen_indices(abstain_logprobs)
     prompt_abstains = prompt_choice == len(OPTION_LETTERS)

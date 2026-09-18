@@ -6,7 +6,7 @@ from typing import Any
 
 import numpy as np
 
-from uncertainty_mech.application.evaluation import NO_GATE, PROMPT_ONLY, Evaluation
+from uncertainty_mech.application.evaluation import INDEPENDENT, NO_GATE, PROMPT_ONLY, Evaluation
 from uncertainty_mech.application.gates import PRIMARY_SIGNAL
 from uncertainty_mech.application.results import RunResults
 from uncertainty_mech.application.risk_model import SignalSet
@@ -56,6 +56,8 @@ def render_markdown(results: RunResults) -> str:
         _setup(results),
         "## Test results, all questions",
         _metrics_table(results.evaluation, "all"),
+        "Upper bounds in these tables treat every row as independent. Each invented entity contributes three "
+        "related questions, so the headline bound uses one unit per group instead.",
         "## Test results, real MedQA questions only",
         _metrics_table(results.evaluation, "real"),
         "## Test results, invented drugs and diseases only",
@@ -91,11 +93,13 @@ def _headline(results: RunResults) -> str:
             f'or below {target}, so the primary gate says "I don\'t know." to every question. Without a gate the '
             f"model was wrong on {_pct(no_gate['selective_risk'])} of {no_gate['n']} test questions."
         )
+    independent = evaluation.metric(PRIMARY_SIGNAL.value, INDEPENDENT)
     text = (
         f"On {primary['n']} held-out test questions, the combined gate answered {_pct(primary['coverage'])} and was "
-        f"wrong on {_pct(primary['selective_risk'])} of those answers (one-sided 95% upper bound "
-        f"{_pct(primary['risk_upper_95'])}, target {target}). Without the gate the model answered every question and "
-        f"was wrong on {_pct(no_gate['selective_risk'])}."
+        f"wrong on {_pct(primary['selective_risk'])} of those answers. Without the gate the model answered every "
+        f"question and was wrong on {_pct(no_gate['selective_risk'])}. On the {independent['n']} independent test "
+        f"units (one per group), the gate released {independent['released']} answers; the one-sided 95% upper bound "
+        f"on their error rate is {_pct(independent['risk_upper_95'])}, against a target of {target}."
     )
     gate_fictional = evaluation.metric(PRIMARY_SIGNAL.value, "fictional")
     prompt_fictional = evaluation.metric(PROMPT_ONLY, "fictional")
@@ -275,9 +279,10 @@ def _steering(steering: SteeringResult) -> str:
     return "\n\n".join(
         [
             f"The error direction is the mean residual at layer {steering.layer} for wrong answers minus the mean "
-            f"for right answers, on discovery data (norm {steering.direction_norm:.1f}). It is added at every token "
-            f"position of that layer on {steering.n_items} test prompts that offer option E. Dose 1 adds the full "
-            f"difference of means. Random directions have the same norm.",
+            f"for right answers, on discovery data (norm {steering.direction_norm:.1f}; the median residual norm "
+            f"there is {steering.residual_norm:.1f}). It is added at every token position of that layer on "
+            f"{steering.n_items} test prompts that offer option E. Dose 1 adds the full difference of means; doses "
+            f"beyond 1 in size push further than the observed difference. Random directions have the same norm.",
             f"Identity check ({verdict}): a zero-dose hook changed the answer log-probabilities by at most "
             f"{steering.identity_max_abs_diff:.2e}.",
             _table(

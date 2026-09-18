@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 from enum import StrEnum
@@ -14,6 +15,8 @@ from sklearn.model_selection import GroupKFold
 from sklearn.preprocessing import StandardScaler
 
 from uncertainty_mech.domain.metrics import auroc
+
+log = logging.getLogger(__name__)
 
 
 class SignalSet(StrEnum):
@@ -117,6 +120,7 @@ def sweep_layers(
     for layer in range(residuals.shape[1]):
         fold_scores = grouped_cv_auroc(np.asarray(residuals[:, layer], dtype=np.float32), errors, groups, c, folds)
         scores.append(LayerScore(layer, float(np.mean(fold_scores)), float(np.std(fold_scores))))
+        log.info("Layer %d/%d: AUROC %.3f", layer + 1, residuals.shape[1], scores[-1].auroc_mean)
     return scores
 
 
