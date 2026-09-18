@@ -100,7 +100,13 @@ class AbstainingAnswerer:
         index = int(chosen_indices(readings.letter_logprobs)[0])
         risk = self._risk(readings)
         result = decide(risk, self._bundle.threshold)
-        answer = Answer(render(result, OPTION_LETTERS[index], options[index]), result.decision, result.reason_code, risk, OPTION_LETTERS[index])
+        answer = Answer(
+            render(result, OPTION_LETTERS[index], options[index]),
+            result.decision,
+            result.reason_code,
+            risk,
+            OPTION_LETTERS[index],
+        )
         if self._audit_store is not None:
             self._audit_store.append_jsonl(AUDIT_FILE, self._audit_record(question, answer, started))
         return answer

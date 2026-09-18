@@ -49,9 +49,7 @@ class FakeLanguageModel:
     d_model = 16
 
     def __init__(self, real_questions: Sequence[HealthQuestion], known_share: float = 0.7) -> None:
-        self._answers = {
-            q.question: q.answer_index for q in real_questions if stable_unit(q.item_id, 99) < known_share
-        }
+        self._answers = {q.question: q.answer_index for q in real_questions if stable_unit(q.item_id, 99) < known_share}
 
     def knows(self, question: str) -> bool:
         return question in self._answers

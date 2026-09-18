@@ -62,14 +62,20 @@ def evaluate_on_test(
         {
             "method": method,
             "stratum": stratum,
-            **asdict(selective_metrics(candidate_errors[method][mask], kept[mask], int(originally_correct[mask].sum()))),
+            **asdict(
+                selective_metrics(candidate_errors[method][mask], kept[mask], int(originally_correct[mask].sum()))
+            ),
         }
         for method, kept in released.items()
         for stratum, mask in subsets.items()
         if mask.any()
     ]
     quality_rows = [
-        {"signal": signal.value, "stratum": stratum, **asdict(risk_quality(risks[signal][subsets[stratum]], errors[subsets[stratum]]))}
+        {
+            "signal": signal.value,
+            "stratum": stratum,
+            **asdict(risk_quality(risks[signal][subsets[stratum]], errors[subsets[stratum]])),
+        }
         for signal in gates
         for stratum in ("all", "real")
         if subsets[stratum].any()
@@ -80,7 +86,14 @@ def evaluate_on_test(
     prompt_coverage = float(prompt_kept.mean())
     prompt_risk = float(prompt_errors[test][prompt_kept].mean()) if prompt_kept.any() else None
     k = int(round(prompt_coverage * n_test))
-    matched_rows = [{"method": PROMPT_ONLY, "answered": int(prompt_kept.sum()), "coverage": prompt_coverage, "selective_risk": prompt_risk}]
+    matched_rows = [
+        {
+            "method": PROMPT_ONLY,
+            "answered": int(prompt_kept.sum()),
+            "coverage": prompt_coverage,
+            "selective_risk": prompt_risk,
+        }
+    ]
     for signal in gates:
         lowest = np.argsort(risks[signal][test], kind="stable")[:k]
         matched_rows.append(

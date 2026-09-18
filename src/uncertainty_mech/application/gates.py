@@ -29,7 +29,9 @@ class FittedGate:
         return risk <= self.selection.threshold
 
 
-def fit_gate(signal: SignalSet, features: np.ndarray, errors: np.ndarray, dataset: Dataset, config: RunConfig) -> FittedGate:
+def fit_gate(
+    signal: SignalSet, features: np.ndarray, errors: np.ndarray, dataset: Dataset, config: RunConfig
+) -> FittedGate:
     discovery = dataset.mask(Role.DISCOVERY)
     cal_prob = dataset.mask(Role.CAL_PROB)
     gate_units = dataset.mask(Role.CAL_GATE) & dataset.canonical

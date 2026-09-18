@@ -1,7 +1,7 @@
 """Composition root: the only module that knows every adapter.
 
-    python -m uncertainty_mech run --config configs/health_test_run.toml
-    python -m uncertainty_mech ask --run-dir runs/<run_id> --questions examples/health_questions.jsonl
+python -m uncertainty_mech run --config configs/health_test_run.toml
+python -m uncertainty_mech ask --run-dir runs/<run_id> --questions examples/health_questions.jsonl
 """
 
 from __future__ import annotations
@@ -91,7 +91,8 @@ def _ask(run_dir: Path, questions_path: Path, model_factory: ModelFactory) -> in
 
 
 def _huggingface_model(config: ModelConfig) -> LanguageModel:
-    from uncertainty_mech.infrastructure.hf_model import HuggingFaceModel  # torch loads only when a real model is needed
+    # Imported here so torch loads only when a real model is needed.
+    from uncertainty_mech.infrastructure.hf_model import HuggingFaceModel
 
     return HuggingFaceModel.from_config(config)
 

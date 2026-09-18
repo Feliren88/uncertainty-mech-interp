@@ -22,7 +22,9 @@ log = logging.getLogger(__name__)
 
 
 class HuggingFaceModel:
-    def __init__(self, name: str, revision: str, dtype: str = "bfloat16", batch_size: int = 16, device: str = "cuda") -> None:
+    def __init__(
+        self, name: str, revision: str, dtype: str = "bfloat16", batch_size: int = 16, device: str = "cuda"
+    ) -> None:
         self.name = f"{name}@{revision}"
         self._batch_size = batch_size
         self._tokenizer = AutoTokenizer.from_pretrained(name, revision=revision)
@@ -54,7 +56,9 @@ class HuggingFaceModel:
         logprobs = np.zeros((len(texts), len(letters)), dtype=np.float32)
         mass = np.zeros(len(texts), dtype=np.float32)
         hidden_size = self._model.config.hidden_size
-        residuals = np.zeros((len(texts), self.num_layers, hidden_size), dtype=np.float32) if capture_residuals else None
+        residuals = (
+            np.zeros((len(texts), self.num_layers, hidden_size), dtype=np.float32) if capture_residuals else None
+        )
         n_batches = (len(order) + self._batch_size - 1) // self._batch_size
         for number, start in enumerate(range(0, len(order), self._batch_size), start=1):
             batch = order[start : start + self._batch_size]
@@ -83,7 +87,9 @@ class HuggingFaceModel:
     def _read_batch(
         self, texts: list[str], letter_ids: list[int], capture: bool, steering: Steering | None
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray | None]:
-        encoded = self._tokenizer(texts, return_tensors="pt", padding=True, add_special_tokens=False).to(self._model.device)
+        encoded = self._tokenizer(texts, return_tensors="pt", padding=True, add_special_tokens=False).to(
+            self._model.device
+        )
         # Left padding shifts the real tokens, so positions must count real tokens only.
         position_ids = (encoded.attention_mask.cumsum(-1) - 1).clamp(min=0)
         captured: dict[int, torch.Tensor] = {}
@@ -91,15 +97,21 @@ class HuggingFaceModel:
         if steering is not None:  # registered first, so any capture at that layer sees the steered state
             handles.append(self._layers[steering.layer].register_forward_hook(self._steering_hook(steering)))
         if capture:
-            handles += [layer.register_forward_hook(_capture_hook(index, captured)) for index, layer in enumerate(self._layers)]
+            handles += [
+                layer.register_forward_hook(_capture_hook(index, captured)) for index, layer in enumerate(self._layers)
+            ]
         try:
-            logits = self._model(
-                input_ids=encoded.input_ids,
-                attention_mask=encoded.attention_mask,
-                position_ids=position_ids,
-                use_cache=False,
-                logits_to_keep=1,
-            ).logits[:, -1, :].float()
+            logits = (
+                self._model(
+                    input_ids=encoded.input_ids,
+                    attention_mask=encoded.attention_mask,
+                    position_ids=position_ids,
+                    use_cache=False,
+                    logits_to_keep=1,
+                )
+                .logits[:, -1, :]
+                .float()
+            )
         finally:
             for handle in handles:
                 handle.remove()
@@ -109,7 +121,9 @@ class HuggingFaceModel:
         return restricted.cpu().numpy(), letter_logprobs_full.exp().sum(-1).cpu().numpy(), residuals
 
     def _steering_hook(self, steering: Steering) -> Callable:
-        vector = torch.as_tensor(steering.direction * steering.scale, dtype=self._model.dtype, device=self._model.device)
+        vector = torch.as_tensor(
+            steering.direction * steering.scale, dtype=self._model.dtype, device=self._model.device
+        )
 
         def hook(module, inputs, output):
             if isinstance(output, tuple):

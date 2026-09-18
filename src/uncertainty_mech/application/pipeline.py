@@ -15,7 +15,8 @@ from uncertainty_mech.application.dataset import prepare_dataset, read_questions
 from uncertainty_mech.application.evaluation import evaluate_on_test
 from uncertainty_mech.application.gates import PRIMARY_SIGNAL, fit_gate
 from uncertainty_mech.application.ports import FigureWriter, LanguageModel, RunStore
-from uncertainty_mech.application.report import RunResults, write_report
+from uncertainty_mech.application.report import write_report
+from uncertainty_mech.application.results import RunResults
 from uncertainty_mech.application.risk_model import SignalSet, build_features, sweep_layers
 from uncertainty_mech.application.steering import error_direction, run_steering_check
 from uncertainty_mech.domain.grading import chosen_indices, error_labels, output_features
@@ -58,7 +59,11 @@ def run_pipeline(
     discovery = dataset.mask(Role.DISCOVERY)
     log.info("Layer sweep on %d discovery items", int(discovery.sum()))
     sweep = sweep_layers(
-        readings.residuals[discovery], errors[discovery], dataset.groups[discovery], config.probe.sweep_c, config.probe.cv_folds
+        readings.residuals[discovery],
+        errors[discovery],
+        dataset.groups[discovery],
+        config.probe.sweep_c,
+        config.probe.cv_folds,
     )
     layer = max(sweep, key=lambda score: score.auroc_mean).layer
     layer_residuals = readings.residuals[:, layer]
@@ -85,7 +90,9 @@ def run_pipeline(
 
     evaluation = evaluate_on_test(dataset, chosen, errors, risks, gates, with_abstain.letter_logprobs)
     log.info("Steering check at layer %d", layer)
-    steering = run_steering_check(model, dataset, error_direction(layer_residuals[discovery], errors[discovery]), layer, config)
+    steering = run_steering_check(
+        model, dataset, error_direction(layer_residuals[discovery], errors[discovery]), layer, config
+    )
 
     results = RunResults(
         config=config,

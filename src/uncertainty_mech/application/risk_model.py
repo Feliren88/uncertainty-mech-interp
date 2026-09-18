@@ -109,7 +109,9 @@ class LayerScore:
     auroc_sd: float
 
 
-def sweep_layers(residuals: np.ndarray, errors: np.ndarray, groups: np.ndarray, c: float, folds: int) -> list[LayerScore]:
+def sweep_layers(
+    residuals: np.ndarray, errors: np.ndarray, groups: np.ndarray, c: float, folds: int
+) -> list[LayerScore]:
     """Grouped-CV AUROC of a logistic error probe at every layer: the activation map."""
     scores = []
     for layer in range(residuals.shape[1]):
