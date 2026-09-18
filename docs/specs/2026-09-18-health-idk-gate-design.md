@@ -54,8 +54,8 @@ One forward pass per prompt with the Llama chat template returns:
 
 - log-probabilities over the option letters (restricted softmax),
 - the total full-vocabulary probability on those letters ("letter mass"),
-- the residual stream at the last prompt token for every decoder layer
-  (`output_hidden_states`, the pattern used in ARENA 1.3.1).
+- the residual stream at the last prompt token for every decoder layer,
+  captured by forward hooks on `model.model.layers[i]` (the ARENA 1.3.1 pattern).
 
 Three risk signal sets are compared, each with its own calibrator and threshold:
 
@@ -110,10 +110,15 @@ src/uncertainty_mech/
     ports.py       QuestionSource, LanguageModel, Steering, Readings
     config.py      RunConfig loaded from TOML
     risk_model.py  layer sweep, logistic probe, temperature calibrator
-    pipeline.py    stages 1 to 7
+    dataset.py     roles per item, model reads (stages 1 and 2)
+    gates.py       fit, calibrate, certify (stages 4 to 6)
+    evaluation.py  final test tables (stage 7)
     steering.py    stage 8
     answer.py      AbstainingAnswerer (the inference service)
-    report.py      report tables and markdown
+    results.py     everything one run produced
+    report.py      CSV tables, summary, figures (stage 9)
+    report_markdown.py  report prose built from the numbers
+    pipeline.py    runs the stages in order
   infrastructure/  adapters
     hf_model.py    transformers adapter, hidden states, forward hooks
     medqa.py       MedQA source
