@@ -155,3 +155,18 @@ Results describe one model, one prompt format and one sample. A good gate here
 does not show a general uncertainty circuit. The steering check is exploratory.
 Fictional items are easier to detect than wrong real answers, so real-only
 metrics are reported next to the pooled ones.
+
+## Addendum after the pilot, 19 September 2026
+
+The 4,600-question test run (`configs/health_test_run.toml`) became the pilot.
+It ran end to end but certified no threshold. Its 427 independent `cal_gate`
+units gave a tightest upper bound of 15.9%, above the 10% target. Discovery
+cross-validation also picked C = 0.01, the smallest value in the grid.
+
+The second run (`configs/health_full_run.toml`) changes only the sample and
+the C grid. It uses all 10,000 unique MedQA training questions and 500
+invented entities, gives `cal_gate` 30% of groups, and extends the C grid to
+0.0001. The 10% target, the threshold grid, delta and the primary signal stay
+fixed. The pilot's test role informed no choice except the decision to rerun.
+Because the two runs share data, the second run is a larger test run, not a
+confirmatory study.

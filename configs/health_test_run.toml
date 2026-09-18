@@ -1,0 +1,38 @@
+# Health test run: 4,000 MedQA questions plus 200 invented entities (600 questions).
+run_id = "health-llama31-8b-test-run"
+seed = 17
+output_root = "../runs"
+
+[data]
+real_repo = "GBaker/MedQA-USMLE-4-options"
+real_revision = "0fb93dd23a7339b6dcd27e241cb9b5eca62d4d18"
+real_file = "phrases_no_exclude_train.jsonl"
+n_real = 4000
+n_fictional_entities = 200
+
+[data.proportions]
+discovery = 0.6
+cal_prob = 0.1
+cal_gate = 0.1
+test = 0.2
+
+[model]
+name = "meta-llama/Llama-3.1-8B-Instruct"
+revision = "0e9e39f249a16976918f6564b8830bc894c89659"
+dtype = "bfloat16"
+batch_size = 16
+
+[probe]
+c_grid = [0.01, 0.1, 1.0, 10.0]
+sweep_c = 0.1
+cv_folds = 5
+
+[gate]
+target_risk = 0.10
+delta = 0.05
+
+[steering]
+doses = [-1.0, -0.5, 0.0, 0.5, 1.0]
+n_items = 200
+n_random = 3
+identity_tolerance = 1e-4
