@@ -92,6 +92,28 @@ Steering adds the circuit's "invented minus real" output to its two heads at the
 
 Net correct is right answers minus wrong answers, per question. Among real questions above the gate, circuit steering turned 60.1% of wrong answers and 46.1% of right answers into "I don't know"; random heads turned none. The push is somewhat selective, and the model's own evidence sets which answers flip. At dose 4 and above every gated answer flips, and the result equals the SE wrapper at the same threshold.
 
+### Several SE thresholds plus the circuit's own readout
+
+One threshold either leaves a question alone or pushes the circuit at a single dose. A tiered schedule uses up to three SE thresholds, each with a stronger push, so the model's own evidence can still resist a mild push on borderline questions. A second trigger reads the circuit itself, measuring how far heads L15.H4 and L17.H25 point along their "invented" direction in the plain pass. That readout separates invented from real questions with AUROC 0.994, so it catches confident hallucinations about unfamiliar entities that SE misses. Schedules are chosen on calibration questions to maximize right answers minus c times wrong answers, where c is the cost of a wrong answer, and scored once on the 2,388 test questions. Full report: `runs/tiered-se-steering/report.md`.
+
+| Wrong-answer cost c | Controller (chosen on calibration) | Abstains on unknown | Abstains on known | Invented refused | Utility |
+|---|---|---|---|---|---|
+| any | Option E only | 21.6% | 0.8% | 60.6% | |
+| 2 | SE wrapper: reply E when SE > 0.2 | 90.1% | 44.3% | 89.6% | 0.273 |
+| 2 | Tiered: SE > 0.2 dose 0.5, > 0.4 dose 2, > 0.6 dose 4; readout high: dose 4 | 87.5% | 34.7% | 98.7% | 0.307 |
+| 4 | SE wrapper: reply E when SE > 0.1 | 93.7% | 54.1% | 91.9% | 0.190 |
+| 4 | Tiered: SE > 0.2 dose 4; readout high: dose 4 | 93.7% | 46.4% | 99.0% | 0.236 |
+
+"Unknown" means invented entities plus real questions the model gets wrong when forced to choose; "known" means real questions it gets right. Paired differences against the SE wrapper, with 95% intervals from resampling question groups:
+
+- **c = 4:** utility +0.046 [+0.020, +0.071]. Abstention on unknown questions is unchanged (+0.0 points [-1.5, +1.5]), and false abstention falls by 7.7 points [6.1, 9.3].
+- **c = 2:** utility +0.034 [+0.014, +0.053]. The tiered controller gives up 2.7 points [0.6, 4.7] of abstention on unknown questions and saves 9.5 points [7.8, 11.5] of false abstention. Tiers without the readout already help here (+0.019 [+0.005, +0.033] over one threshold).
+- **c = 1:** no clear utility difference (+0.008 [-0.008, +0.025]). The tiered controller abstains more on both unknown and known questions.
+
+The readout does most of its work where SE is blind. Among questions with SE below 0.2 nats, the tiered controller at c = 2 abstains on 40.6% of the unknown ones and 4.0% of the known ones; every SE-only method abstains on 7.3% of the unknown ones there. Random heads under the same schedule change nothing (utility 0.005 against 0.010 for option E alone at c = 2).
+
+The price is false abstention. Between 0.2 and 0.6 nats the controller still refuses 44% of questions the model knows, because SE does not separate right from wrong answers well in that band, and the readout separates them only weakly on real questions (AUROC 0.646).
+
 ### Limits of the circuit study
 
 - Patching at the final token shows where the model reads the signal. The route from the entity to the tail is only partly mapped.
@@ -122,10 +144,11 @@ python -m uncertainty_mech run --config configs/health_smoke.toml     # 120 ques
 python -m uncertainty_mech run --config configs/health_full_run.toml  # 11,500 questions, about 30 min on one A100
 python -m uncertainty_mech ask --run-dir runs/health-llama31-8b-full-run \
     --questions examples/health_questions.jsonl
-python -m uncertainty_mech circuits --config configs/circuit_study.toml  # patching and steering, about 45 min
+python -m uncertainty_mech circuits --config configs/circuit_study.toml  # patching and steering, about 1 hour
+python -m uncertainty_mech tiers --config configs/tiers.toml             # tiered steering only, about 15 min
 ```
 
-`circuits` reads the full run's directory (its model, items, roles and saved answer distributions) and writes `runs/circuit-se-steering/`: `report.md`, three figures, and a CSV for every sweep, including per-question predictions under each steering condition.
+`circuits` reads the full run's directory (its model, items, roles and saved answer distributions) and writes `runs/circuit-se-steering/`: `report.md`, four figures, the steering vectors, and a CSV for every sweep, including per-question predictions under each steering condition. `tiers` reruns only the tiered stage from those saved vectors, so schedules can be revised without repeating the patching sweeps.
 
 `scripts/test_run.sh` runs the test, the smoke run, the 4,600-question run and the demo in one go.
 
@@ -162,7 +185,7 @@ As requested, the tests are end to end only. `tests/test_end_to_end.py` runs `ru
 - a zero-dose steering hook leaves the output unchanged;
 - `ask` answers a known question and says `I don't know.` to an invented one.
 
-`tests/test_circuit_study.py` runs `run` and then `circuits` on a fake four-layer model with one planted abstention head (layer 2, head 1). It checks that the head sweep ranks the planted head first, that the circuit beats random heads on held-out pairs, that SE-gated steering turns uncertain answers into "I don't know" while random heads do not, and that every artifact is written.
+`tests/test_circuit_study.py` runs `run` and then `circuits` on a fake four-layer model with one planted abstention head (layer 2, head 1). It checks that the head sweep ranks the planted head first, that the circuit beats random heads on held-out pairs, that SE-gated steering turns uncertain answers into "I don't know" while random heads do not, that tiered controllers score at least as well as simpler ones on calibration data and beat random heads on test, that the `tiers` command reproduces the stage from saved vectors with valid bootstrap intervals, and that every artifact is written.
 
 The GPU runs are the real end-to-end tests. The smoke run caught one bug the fake could not. MedQA sampling reused the hash that assigns roles, so every sampled question landed in `discovery`. Sampling now has its own hash stream, and the test checks role balance.
 
