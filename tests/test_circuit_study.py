@@ -35,6 +35,13 @@ n_random = 3
 [steering]
 doses = [1.0, 2.0]
 se_thresholds = [0.3, 0.6, 0.9, 1.2]
+
+[tiers]
+dose_grid = [1.0, 2.0]
+tier_thresholds = [0.3, 0.6, 0.9]
+max_tiers = 2
+readout_quantiles = [0.5, 0.9]
+wrong_costs = [1.0, 2.0]
 """
 
 EXPECTED_FILES = [
@@ -50,11 +57,17 @@ EXPECTED_FILES = [
     "steering_flips.csv",
     "steering_curves.csv",
     "steering_predictions.csv",
+    "steering_vectors.npz",
+    "tiers_choices.csv",
+    "tiers_test.csv",
+    "tiers_bands.csv",
+    "tiers_top_schedules.csv",
     "summary.json",
     "report.md",
     "figures/residual_patching.png",
     "figures/head_patching.png",
     "figures/se_steering.png",
+    "figures/tiers_tradeoff.png",
 ]
 
 
@@ -117,3 +130,20 @@ def test_se_gated_steering_turns_uncertain_answers_into_i_dont_know(study):
     circuit_flips = float(flips[("circuit", "wrong before")]["flipped_to_e"])
     random_flips = float(flips[("random_heads", "wrong before")]["flipped_to_e"])
     assert circuit_flips > random_flips
+
+
+def test_tiered_controllers_nest_on_calibration_and_beat_random_heads_on_test(study):
+    choices = _rows(study / "tiers_choices.csv")
+    for cost in {row["wrong_cost"] for row in choices}:
+        utility = {row["family"]: float(row["calibration_utility"]) for row in choices if row["wrong_cost"] == cost}
+        assert utility["circuit_one_threshold"] <= utility["circuit_tiered"] <= utility["circuit_tiered_readout"]
+    for cost in {row["wrong_cost"] for row in choices}:
+        test = {row["condition"]: row for row in _rows(study / "tiers_test.csv") if row["wrong_cost"] == cost}
+        tiered = float(test["circuit_tiered_readout"]["abstain_on_unknown"])
+        assert tiered > float(test["control_random_heads"]["abstain_on_unknown"])
+        assert tiered >= float(test["option_e_only"]["abstain_on_unknown"])
+
+
+def test_circuit_readout_separates_invented_from_real(study):
+    summary = json.loads((study / "summary.json").read_text())
+    assert summary["readout_auroc_invented"] > 0.9

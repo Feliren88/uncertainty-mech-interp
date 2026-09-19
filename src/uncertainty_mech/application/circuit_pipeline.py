@@ -35,6 +35,7 @@ from uncertainty_mech.application.se_steering import (
     random_direction_vectors,
     random_head_vectors,
 )
+from uncertainty_mech.application.tiered_steering import run_tiered_study
 from uncertainty_mech.domain.grading import semantic_entropy
 from uncertainty_mech.domain.questions import Role
 
@@ -79,6 +80,14 @@ def run_circuit_study(
     circuit = SteeringVectors(choice.heads, steering_vectors(invented_z, real_z, choice.heads))
     random_heads = random_head_vectors(invented_z, real_z, choice.heads, rng)
     random_vectors = random_direction_vectors(circuit, rng)
+    store.write_arrays(
+        "steering_vectors.npz",
+        circuit_heads=np.array(circuit.heads),
+        circuit_vectors=circuit.vectors,
+        random_heads=np.array(random_heads.heads),
+        random_head_vectors=random_heads.vectors,
+        random_vectors=random_vectors.vectors,
+    )
     dataset = dataset_from_rows(source.read_table("items.csv"))
     forced = source.read_arrays("readings.npz", keys=("letter_logprobs",))["letter_logprobs"]
     se = semantic_entropy(forced)
@@ -89,6 +98,10 @@ def run_circuit_study(
     log.info("Operating points: %s", points)
     evaluation = evaluate(
         model, test_items, circuit, random_heads, random_vectors, points, config.steering.se_thresholds
+    )
+    log.info("Tiered steering over wrong-answer costs %s", config.tiers.wrong_costs)
+    tiered = run_tiered_study(
+        model, calibration_items, test_items, circuit, random_heads, config.tiers, config.steering.se_thresholds
     )
 
     results = CircuitResults(
@@ -106,6 +119,7 @@ def run_circuit_study(
         points=points,
         calibration_rows=calibration_rows,
         evaluation=evaluation,
+        tiered=tiered,
         started=started,
         finished=datetime.now(UTC),
     )

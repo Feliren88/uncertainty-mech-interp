@@ -30,6 +30,15 @@ class SteeringGridConfig:
 
 
 @dataclass(frozen=True)
+class TierConfig:
+    dose_grid: tuple[float, ...] = (0.5, 1.0, 2.0, 4.0, 8.0)
+    tier_thresholds: tuple[float, ...] = (0.2, 0.4, 0.6, 0.8, 1.0, 1.2)
+    max_tiers: int = 3
+    readout_quantiles: tuple[float, ...] = (0.5, 0.75, 0.9, 0.95)
+    wrong_costs: tuple[float, ...] = (1.0, 2.0, 4.0)
+
+
+@dataclass(frozen=True)
 class CircuitStudyConfig:
     run_id: str
     seed: int
@@ -39,6 +48,7 @@ class CircuitStudyConfig:
     pairs: PairConfig = field(default_factory=PairConfig)
     circuit: CircuitConfig = field(default_factory=CircuitConfig)
     steering: SteeringGridConfig = field(default_factory=SteeringGridConfig)
+    tiers: TierConfig = field(default_factory=TierConfig)
 
     @property
     def run_dir(self) -> Path:
@@ -63,6 +73,7 @@ def load_circuit_config(path: Path) -> CircuitStudyConfig:
         pairs=PairConfig(**raw.get("pairs", {})),
         circuit=CircuitConfig(**_as_tuples(raw.get("circuit", {}))),
         steering=SteeringGridConfig(**_as_tuples(raw.get("steering", {}))),
+        tiers=TierConfig(**_as_tuples(raw.get("tiers", {}))),
     )
 
 

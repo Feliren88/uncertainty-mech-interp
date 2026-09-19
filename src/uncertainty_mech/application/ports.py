@@ -160,6 +160,15 @@ class CircuitFigureWriter(Protocol):
         path: Path,
     ) -> None: ...
 
+    def abstention_tradeoff(
+        self,
+        paths: dict[str, list[tuple[float, float, float]]],
+        points: dict[str, tuple[float, float]],
+        path: Path,
+    ) -> None:
+        """Per condition, (false abstention on known, abstention on unknown, wrong-answer cost) points."""
+        ...
+
 
 class FigureWriter(Protocol):
     def layer_sweep(self, rows: Sequence[dict[str, Any]], chosen_layer: int, path: Path) -> None: ...

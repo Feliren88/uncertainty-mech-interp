@@ -42,6 +42,10 @@ _COLORS = {
     "always_on_circuit": "#9467bd",
     "control_random_heads": "#1b6ca8",
     "control_random_vectors": "#5dade2",
+    "option_e_only": "#2e8b57",
+    "circuit_one_threshold": "#e59866",
+    "circuit_tiered": "#d4820a",
+    "circuit_tiered_readout": "#c0392b",
 }
 _LABELS = {
     "output": "Output statistics",
@@ -54,6 +58,10 @@ _LABELS = {
     "always_on_circuit": "Circuit steering on every question",
     "control_random_heads": "Control: random heads",
     "control_random_vectors": "Control: random vectors",
+    "option_e_only": "Option E only",
+    "circuit_one_threshold": "Circuit, one SE threshold",
+    "circuit_tiered": "Circuit, tiered SE thresholds",
+    "circuit_tiered_readout": "Circuit, tiered SE + circuit readout",
 }
 
 
@@ -182,6 +190,58 @@ class MatplotlibFigures:
             ax.set_xlim(0, 1)
             ax.set_ylim(bottom=0)
             _finish(fig, ax, "Share of test questions answered", "Error rate among answered questions", path)
+
+    def abstention_tradeoff(
+        self,
+        paths: dict[str, list[tuple[float, float, float]]],
+        points: dict[str, tuple[float, float]],
+        path: Path,
+    ) -> None:
+        """One line per controller through its wrong-answer costs; each point is labelled with its cost."""
+        with plt.rc_context(_STYLE):
+            fig, ax = plt.subplots(figsize=(7.2, 4.2))
+            # Controllers can pick the same schedule. Wider, lighter lines go underneath, so a line hidden
+            # by an identical one still shows as a halo.
+            widths = {"se_wrapper": 6.0, "circuit_one_threshold": 4.5, "circuit_tiered": 3.0}
+            for name, triples in paths.items():
+                control = name.startswith("control")
+                known, unknown, costs = zip(*sorted(triples, key=lambda t: t[2]), strict=True)
+                width = widths.get(name, 1.3)
+                ax.plot(
+                    known,
+                    unknown,
+                    color=_COLORS[name],
+                    marker="s" if control else "o",
+                    markersize=8 if control else 3 + width,
+                    markerfacecolor="none" if control else _COLORS[name],
+                    linestyle="--" if control else "-",
+                    linewidth=width,
+                    alpha=0.55 if name in widths else 1.0,
+                    label=_LABELS[name],
+                    zorder=4 if control else 3,
+                )
+                if name == "circuit_tiered_readout":
+                    for x, y, cost in zip(known, unknown, costs, strict=True):
+                        ax.annotate(f"c = {cost:g}", (x, y), textcoords="offset points", xytext=(6, -12), fontsize=9)
+            for name, (known, unknown) in points.items():
+                ax.plot(
+                    [known],
+                    [unknown],
+                    color=_COLORS[name],
+                    marker="D",
+                    markersize=7,
+                    linestyle="none",
+                    label=_LABELS[name],
+                )
+            ax.set_xlim(left=0)
+            ax.set_ylim(0, 1.03)
+            _finish(
+                fig,
+                ax,
+                "Abstains on questions the model knows (false abstention)",
+                "Abstains on questions the model does not know",
+                path,
+            )
 
 
 def _save(fig: plt.Figure, path: Path) -> None:

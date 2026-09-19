@@ -13,6 +13,7 @@ from uncertainty_mech.application.circuit_config import CircuitStudyConfig
 from uncertainty_mech.application.patching import SEGMENTS, CircuitChoice, Head, PairBaseline, PairSet
 from uncertainty_mech.application.ports import CircuitFigureWriter, RunStore
 from uncertainty_mech.application.se_steering import OperatingPoints, SteeringEvaluation
+from uncertainty_mech.application.tiered_steering import TieredResults
 
 SEGMENT_LABELS = ("Last entity token", "Token after entity", "Instruction tail", "Final token")
 SEGMENT_TEXT = dict(zip(SEGMENTS, (label.lower() for label in SEGMENT_LABELS), strict=True))
@@ -24,6 +25,14 @@ CONDITION_LABELS = {
     "always_on_circuit": "Circuit steering on every question",
     "control_random_heads": "Control: SE-gated, random heads",
     "control_random_vectors": "Control: SE-gated, random vectors at circuit heads",
+}
+TIER_LABELS = {
+    "option_e_only": "Option E only",
+    "se_wrapper": "SE wrapper, one threshold",
+    "circuit_one_threshold": "Circuit, one SE threshold",
+    "circuit_tiered": "Circuit, tiered SE thresholds",
+    "circuit_tiered_readout": "Circuit, tiered SE + circuit readout",
+    "control_random_heads": "Control: tiered + readout schedule on random heads",
 }
 
 
@@ -76,6 +85,7 @@ class CircuitResults:
     points: OperatingPoints
     calibration_rows: list[dict[str, Any]]
     evaluation: SteeringEvaluation
+    tiered: TieredResults
     started: datetime
     finished: datetime
 
@@ -103,6 +113,7 @@ def write_circuit_report(store: RunStore, figures: CircuitFigureWriter, results:
     figures.steering_tradeoff(
         results.evaluation.curves, _points(results.evaluation.rows), store.root / "figures" / "se_steering.png"
     )
+    figures.abstention_tradeoff(*_tier_paths(results.tiered), store.root / "figures" / "tiers_tradeoff.png")
     summary = _summary(results)
     store.write_json("summary.json", summary)
     store.write_text("report.md", _markdown(results, summary))
@@ -120,6 +131,11 @@ def _write_tables(store: RunStore, results: CircuitResults) -> None:
     store.write_table("steering_flips.csv", results.evaluation.flips)
     store.write_table("steering_curves.csv", results.evaluation.curve_rows)
     store.write_table("steering_predictions.csv", results.evaluation.predictions)
+    tiered = results.tiered
+    store.write_table("tiers_choices.csv", [_choice_row(choice) for choice in tiered.choices])
+    store.write_table("tiers_test.csv", tiered.test_rows)
+    store.write_table("tiers_bands.csv", tiered.band_rows)
+    store.write_table("tiers_top_schedules.csv", tiered.top_rows)
     store.write_json(
         "circuit.json",
         {
@@ -180,6 +196,10 @@ def _summary(results: CircuitResults) -> dict[str, Any]:
         "test_necessity_random_mean": _mean([row["restoration_gap"] for row in random_necessity]),
         "operating_points": asdict(results.points),
         "steering_test": {row["condition"]: row for row in results.evaluation.rows},
+        "readout_auroc_invented": results.tiered.readout_auroc_invented,
+        "readout_auroc_unknown_real": results.tiered.readout_auroc_unknown_real,
+        "tiered_test": list(results.tiered.test_rows),
+        "tiered_choices": [_choice_row(choice) for choice in results.tiered.choices],
     }
 
 
@@ -220,6 +240,8 @@ def _markdown(results: CircuitResults, summary: dict[str, Any]) -> str:
         _circuit(results),
         "## Semantic-entropy steering on MedQA",
         _steering(results),
+        "## Tiered semantic-entropy steering",
+        _tiers(results),
         "## Limits",
         "\n".join(
             [
@@ -429,3 +451,110 @@ def _steering(results: CircuitResults) -> str:
             _table(["Steering", "Real answers before steering", "n", "Turned into E"], flips),
         ]
     )
+
+
+def _choice_row(choice) -> dict[str, Any]:
+    return {
+        "wrong_cost": choice.wrong_cost,
+        "family": choice.family,
+        "schedule": _schedule_text(choice),
+        "calibration_utility": choice.calibration_utility,
+    }
+
+
+def _tier_paths(
+    tiered: TieredResults,
+) -> tuple[dict[str, list[tuple[float, float, float]]], dict[str, tuple[float, float]]]:
+    paths: dict[str, list[tuple[float, float, float]]] = {}
+    points: dict[str, tuple[float, float]] = {}
+    for row in tiered.test_rows:
+        point = (row["abstain_on_known"], row["abstain_on_unknown"])
+        if row["condition"] == "option_e_only":
+            points["option_e_only"] = point
+        else:
+            paths.setdefault(row["condition"], []).append((*point, row["wrong_cost"]))
+    return paths, points
+
+
+def _tier_row(tiered: TieredResults, cost: float, condition: str) -> dict[str, Any]:
+    return next(r for r in tiered.test_rows if r["wrong_cost"] == cost and r["condition"] == condition)
+
+
+def _tiers(results: CircuitResults) -> str:
+    tiered = results.tiered
+    costs = sorted({row["wrong_cost"] for row in tiered.test_rows})
+    middle = costs[len(costs) // 2]
+    full = _tier_row(tiered, middle, "circuit_tiered_readout")
+    wrapper = _tier_row(tiered, middle, "se_wrapper")
+    plain = _tier_row(tiered, middle, "option_e_only")
+    choice_rows = [
+        [
+            f"{choice.wrong_cost:g}",
+            TIER_LABELS[choice.family],
+            _schedule_text(choice),
+            _num(choice.calibration_utility, 3),
+        ]
+        for choice in tiered.choices
+    ]
+    test_rows = [
+        [
+            f"{row['wrong_cost']:g}",
+            TIER_LABELS[row["condition"]],
+            _num(row["utility"], 3),
+            _pct(row["abstain_on_unknown"]),
+            _pct(row["abstain_on_known"]),
+            _pct(row["abstain_on_invented"]),
+            _pct(row["wrong_among_answered"]),
+        ]
+        for row in tiered.test_rows
+    ]
+    band_rows = [
+        [
+            TIER_LABELS[row["condition"]],
+            row["se_band"],
+            str(row["n"]),
+            _pct(row["abstain_on_unknown"]),
+            _pct(row["abstain_on_known"]),
+        ]
+        for row in tiered.band_rows
+        if row["wrong_cost"] == middle
+    ]
+    return "\n\n".join(
+        [
+            "A schedule maps semantic entropy to a dose: above each threshold the circuit gets a stronger push, and "
+            "the reply is the model's own letter under that push. The circuit readout is how far the circuit heads' "
+            "outputs point along their steering directions in the plain pass. Above its threshold the dose rises to at "
+            "least the readout dose, which can catch confident answers about unfamiliar entities. Schedules are chosen "
+            "on cal_prob to maximize utility, right answers minus c times wrong answers per question, for each "
+            "wrong-answer cost c, and scored once on test. Unknown questions are invented entities plus real questions "
+            "the model gets wrong when forced to choose; known questions are those it gets right.",
+            f"The circuit readout separates invented from real questions with AUROC "
+            f"{_num(tiered.readout_auroc_invented, 3)}, and wrong from right answers on real questions with AUROC "
+            f"{_num(tiered.readout_auroc_unknown_real, 3)}.",
+            _table(["Cost c", "Controller", "Chosen on cal_prob", "Calibration utility"], choice_rows),
+            _table(
+                [
+                    "Cost c",
+                    "Condition",
+                    "Utility",
+                    "Abstains on unknown",
+                    "Abstains on known",
+                    "Invented refused",
+                    "Wrong among answered",
+                ],
+                test_rows,
+            ),
+            "![Tiered steering](figures/tiers_tradeoff.png)",
+            f"*At cost {middle:g}, tiered steering with the circuit readout abstains on "
+            f"{_pct(full['abstain_on_unknown'])} of unknown questions and {_pct(full['abstain_on_known'])} of known "
+            f"ones; the one-threshold SE wrapper abstains on {_pct(wrapper['abstain_on_unknown'])} and "
+            f"{_pct(wrapper['abstain_on_known'])}, and option E alone on {_pct(plain['abstain_on_unknown'])} and "
+            f"{_pct(plain['abstain_on_known'])}.*",
+            f"Abstention by semantic-entropy band at cost {middle:g}:",
+            _table(["Condition", "SE band (nats)", "n", "Abstains on unknown", "Abstains on known"], band_rows),
+        ]
+    )
+
+
+def _schedule_text(choice) -> str:
+    return choice.schedule.describe() if choice.schedule else f"SE > {choice.wrapper_threshold:.1f}: reply E"
