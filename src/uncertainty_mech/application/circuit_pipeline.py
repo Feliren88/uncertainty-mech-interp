@@ -11,7 +11,6 @@ import numpy as np
 
 from uncertainty_mech.application.circuit_config import CircuitStudyConfig
 from uncertainty_mech.application.circuit_report import CircuitResults, PairSummary, write_circuit_report
-from uncertainty_mech.application.dataset import dataset_from_rows
 from uncertainty_mech.application.entity_pairs import EntityPair, split_pairs
 from uncertainty_mech.application.patching import (
     align_pairs,
@@ -28,16 +27,15 @@ from uncertainty_mech.application.patching import (
 )
 from uncertainty_mech.application.ports import CircuitFigureWriter, CircuitModel, RunStore
 from uncertainty_mech.application.se_steering import (
-    EvalSet,
     SteeringVectors,
     calibrate,
+    ensure_same_model,
     evaluate,
+    load_eval_sets,
     random_direction_vectors,
     random_head_vectors,
 )
 from uncertainty_mech.application.tiered_steering import run_tiered_study
-from uncertainty_mech.domain.grading import semantic_entropy
-from uncertainty_mech.domain.questions import Role
 
 log = logging.getLogger(__name__)
 
@@ -51,9 +49,7 @@ def run_circuit_study(
     figures: CircuitFigureWriter,
 ) -> dict[str, Any]:
     started = datetime.now(UTC)
-    source_model = source.read_json("bundle.json")["model_name"]
-    if source_model != model.name:
-        raise ValueError(f"the source run used {source_model}, not {model.name}")
+    ensure_same_model(source, model)
     store.write_json("config.json", config.to_dict())
     rng = np.random.default_rng(config.seed)
 
@@ -88,11 +84,7 @@ def run_circuit_study(
         random_head_vectors=random_heads.vectors,
         random_vectors=random_vectors.vectors,
     )
-    dataset = dataset_from_rows(source.read_table("items.csv"))
-    forced = source.read_arrays("readings.npz", keys=("letter_logprobs",))["letter_logprobs"]
-    se = semantic_entropy(forced)
-    calibration_items = EvalSet.from_role(dataset, Role.CAL_PROB, forced, se)
-    test_items = EvalSet.from_role(dataset, Role.TEST, forced, se)
+    calibration_items, test_items = load_eval_sets(source)
     log.info("Calibrating SE steering on %d items", len(calibration_items.prompts))
     points, calibration_rows = calibrate(model, calibration_items, circuit, config.steering)
     log.info("Operating points: %s", points)
@@ -101,7 +93,7 @@ def run_circuit_study(
     )
     log.info("Tiered steering over wrong-answer costs %s", config.tiers.wrong_costs)
     tiered = run_tiered_study(
-        model, calibration_items, test_items, circuit, random_heads, config.tiers, config.steering.se_thresholds
+        model, calibration_items, test_items, circuit, random_heads, config.tiers, config.steering.se_thresholds, rng
     )
 
     results = CircuitResults(

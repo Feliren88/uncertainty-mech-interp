@@ -19,11 +19,17 @@ from uncertainty_mech.application.circuit_config import TierConfig
 from uncertainty_mech.application.patching import E_LETTERS
 from uncertainty_mech.application.ports import Capture, CircuitModel, Site, SiteKind
 from uncertainty_mech.application.se_steering import EvalSet, SteeringVectors
-from uncertainty_mech.domain.dose_schedule import ABSTAIN, DoseSchedule, abstention_profile, utility
+from uncertainty_mech.domain.dose_schedule import ABSTAIN, DoseSchedule, abstention_profile, item_utility, utility
 from uncertainty_mech.domain.grading import chosen_indices
-from uncertainty_mech.domain.metrics import auroc
+from uncertainty_mech.domain.metrics import auroc, group_bootstrap_difference
 
 SE_BANDS = ((0.0, 0.2), (0.2, 0.6), (0.6, 1.0), (1.0, np.inf))
+# (better, baseline): what the tiers and the readout add over simpler controllers.
+COMPARISONS = (
+    ("circuit_tiered_readout", "se_wrapper"),
+    ("circuit_tiered_readout", "circuit_one_threshold"),
+    ("circuit_tiered", "circuit_one_threshold"),
+)
 
 
 @dataclass(frozen=True)
@@ -135,6 +141,8 @@ class TieredResults:
     test_rows: list[dict[str, Any]]
     band_rows: list[dict[str, Any]]
     top_rows: list[dict[str, Any]]
+    comparison_rows: list[dict[str, Any]]  # paired group-bootstrap differences on test
+    prediction_rows: list[dict[str, Any]]  # one per test question: signals, doses and letters
 
 
 def run_tiered_study(
@@ -145,6 +153,7 @@ def run_tiered_study(
     random_heads: SteeringVectors,
     config: TierConfig,
     wrapper_thresholds: Sequence[float],
+    rng: np.random.Generator,
 ) -> TieredResults:
     calibration_readout = circuit_readout(model, calibration, circuit)
     test_readout = circuit_readout(model, test, circuit)
@@ -162,7 +171,9 @@ def run_tiered_study(
         top_rows += top
 
     plain = test_passes.choices[0]
-    test_rows, band_rows = [], []
+    test_rows, band_rows, comparison_rows = [], [], []
+    predictions = {"group": test.groups, "answer": test.answers, "forced_correct": test.forced_correct}
+    predictions |= {"se": test.se, "readout": test_readout}
     for cost in config.wrong_costs:
         conditions = {"option_e_only": plain}
         for choice in (c for c in choices if c.wrong_cost == cost):
@@ -173,6 +184,9 @@ def run_tiered_study(
             conditions[choice.family] = test_passes.letters(doses)
             if choice.family == "circuit_tiered_readout":
                 conditions["control_random_heads"] = control_passes.letters(doses)
+                predictions[f"c{cost:g}_dose_tiered_readout"] = doses
+        predictions |= {f"c{cost:g}_{name}": letters for name, letters in conditions.items()}
+        comparison_rows += _comparisons(cost, conditions, test, rng, config.bootstrap_samples)
         for name, letters in conditions.items():
             test_rows.append(
                 {
@@ -194,7 +208,44 @@ def run_tiered_study(
         test_rows=test_rows,
         band_rows=band_rows,
         top_rows=top_rows,
+        comparison_rows=comparison_rows,
+        prediction_rows=[
+            {key: _plain(values[i]) for key, values in predictions.items()} for i in range(len(test.prompts))
+        ],
     )
+
+
+def _plain(value: Any) -> Any:
+    return value.item() if isinstance(value, np.generic) else value
+
+
+def _comparisons(
+    cost: float, conditions: dict[str, np.ndarray], items: EvalSet, rng: np.random.Generator, samples: int
+) -> list[dict[str, Any]]:
+    """Paired differences on the same test questions, with 95% intervals over resampled groups."""
+    unknown = (items.answers < 0) | ~items.forced_correct
+    rows = []
+    for better, baseline in COMPARISONS:
+        a, b = conditions[better], conditions[baseline]
+        measures = {
+            "utility": (item_utility(a, items.answers, cost), item_utility(b, items.answers, cost), None),
+            "abstain_on_unknown": (a == ABSTAIN, b == ABSTAIN, unknown),
+            "abstain_on_known": (a == ABSTAIN, b == ABSTAIN, ~unknown),
+        }
+        for measure, (values_a, values_b, mask) in measures.items():
+            difference, low, high = group_bootstrap_difference(values_a, values_b, items.groups, rng, samples, mask)
+            rows.append(
+                {
+                    "wrong_cost": cost,
+                    "controller": better,
+                    "baseline": baseline,
+                    "measure": measure,
+                    "difference": difference,
+                    "low_95": low,
+                    "high_95": high,
+                }
+            )
+    return rows
 
 
 def _band_rows(cost: float, conditions: dict[str, np.ndarray], items: EvalSet) -> list[dict[str, Any]]:

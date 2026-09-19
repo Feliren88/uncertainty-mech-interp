@@ -222,7 +222,9 @@ class MatplotlibFigures:
                 )
                 if name == "circuit_tiered_readout":
                     for x, y, cost in zip(known, unknown, costs, strict=True):
-                        ax.annotate(f"c = {cost:g}", (x, y), textcoords="offset points", xytext=(6, -12), fontsize=9)
+                        ax.annotate(
+                            f"c = {cost:g}", (x, y), textcoords="offset points", xytext=(-4, 7), ha="right", fontsize=9
+                        )
             for name, (known, unknown) in points.items():
                 ax.plot(
                     [known],

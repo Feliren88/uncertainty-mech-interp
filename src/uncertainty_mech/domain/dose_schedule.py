@@ -52,12 +52,16 @@ class DoseSchedule:
         return steps
 
 
-def utility(choice: np.ndarray, answers: np.ndarray, wrong_cost: float) -> float:
-    """(right answers - wrong_cost * wrong answers) per question. "I don't know" scores 0."""
+def item_utility(choice: np.ndarray, answers: np.ndarray, wrong_cost: float) -> np.ndarray:
+    """Per question: 1 for a right answer, -wrong_cost for a wrong one, 0 for "I don't know"."""
     answered = choice != ABSTAIN
     right = answered & (choice == answers)
-    wrong = answered & ~right
-    return float((right.sum() - wrong_cost * wrong.sum()) / len(choice))
+    return np.where(right, 1.0, np.where(answered, -wrong_cost, 0.0))
+
+
+def utility(choice: np.ndarray, answers: np.ndarray, wrong_cost: float) -> float:
+    """(right answers - wrong_cost * wrong answers) per question."""
+    return float(item_utility(choice, answers, wrong_cost).mean())
 
 
 def abstention_profile(choice: np.ndarray, answers: np.ndarray, forced_correct: np.ndarray) -> dict[str, float]:

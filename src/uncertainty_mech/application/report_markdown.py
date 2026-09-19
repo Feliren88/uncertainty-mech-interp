@@ -8,6 +8,9 @@ import numpy as np
 
 from uncertainty_mech.application.evaluation import INDEPENDENT, NO_GATE, PROMPT_ONLY, Evaluation
 from uncertainty_mech.application.gates import PRIMARY_SIGNAL
+from uncertainty_mech.application.markdown_format import num as _num
+from uncertainty_mech.application.markdown_format import pct as _pct
+from uncertainty_mech.application.markdown_format import table as _table
 from uncertainty_mech.application.results import RunResults
 from uncertainty_mech.application.risk_model import SignalSet
 from uncertainty_mech.application.steering import ERROR_DIRECTION, SteeringResult
@@ -32,20 +35,6 @@ LIMITS = (
     "identify a circuit.",
     "Nothing here is medical advice or a validated clinical tool.",
 )
-
-
-def _pct(value: float | None) -> str:
-    return "n/a" if value is None else f"{100 * value:.1f}%"
-
-
-def _num(value: float | None, digits: int = 3) -> str:
-    return "n/a" if value is None else f"{value:.{digits}f}"
-
-
-def _table(header: list[str], rows: list[list[str]]) -> str:
-    lines = ["| " + " | ".join(header) + " |", "|" + "---|" * len(header)]
-    lines += ["| " + " | ".join(row) + " |" for row in rows]
-    return "\n".join(lines)
 
 
 def render_markdown(results: RunResults) -> str:

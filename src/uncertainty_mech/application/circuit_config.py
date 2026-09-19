@@ -36,6 +36,7 @@ class TierConfig:
     max_tiers: int = 3
     readout_quantiles: tuple[float, ...] = (0.5, 0.75, 0.9, 0.95)
     wrong_costs: tuple[float, ...] = (1.0, 2.0, 4.0)
+    bootstrap_samples: int = 2000
 
 
 @dataclass(frozen=True)
@@ -79,3 +80,39 @@ def load_circuit_config(path: Path) -> CircuitStudyConfig:
 
 def _as_tuples(section: dict[str, Any]) -> dict[str, Any]:
     return {key: tuple(value) if isinstance(value, list) else value for key, value in section.items()}
+
+
+@dataclass(frozen=True)
+class TiersStudyConfig:
+    """Stage 4 alone, reusing a finished circuit study's steering vectors."""
+
+    run_id: str
+    seed: int
+    output_root: Path
+    circuit_run: Path  # a finished `circuits` directory with steering_vectors.npz
+    model: ModelConfig
+    tiers: TierConfig = field(default_factory=TierConfig)
+    wrapper_thresholds: tuple[float, ...] = SteeringGridConfig().se_thresholds
+
+    @property
+    def run_dir(self) -> Path:
+        return self.output_root / self.run_id
+
+    def to_dict(self) -> dict[str, Any]:
+        payload = asdict(self)
+        payload["output_root"] = str(self.output_root)
+        payload["circuit_run"] = str(self.circuit_run)
+        return payload
+
+
+def load_tiers_config(path: Path) -> TiersStudyConfig:
+    raw = tomllib.loads(path.read_text(encoding="utf-8"))
+    return TiersStudyConfig(
+        run_id=raw["run_id"],
+        seed=int(raw["seed"]),
+        output_root=(path.parent / raw.get("output_root", "runs")).resolve(),
+        circuit_run=(path.parent / raw["circuit_run"]).resolve(),
+        model=ModelConfig(**raw["model"]),
+        tiers=TierConfig(**_as_tuples(raw.get("tiers", {}))),
+        **_as_tuples({key: raw[key] for key in ("wrapper_thresholds",) if key in raw}),
+    )

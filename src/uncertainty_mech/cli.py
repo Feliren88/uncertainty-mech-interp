@@ -3,6 +3,7 @@
 python -m uncertainty_mech run --config configs/health_full_run.toml
 python -m uncertainty_mech ask --run-dir runs/<run_id> --questions examples/health_questions.jsonl
 python -m uncertainty_mech circuits --config configs/circuit_study.toml
+python -m uncertainty_mech tiers --config configs/tiers.toml
 """
 
 from __future__ import annotations
@@ -16,11 +17,12 @@ from pathlib import Path
 from typing import Protocol
 
 from uncertainty_mech.application.answer import AbstainingAnswerer, load_bundle
-from uncertainty_mech.application.circuit_config import load_circuit_config
+from uncertainty_mech.application.circuit_config import load_circuit_config, load_tiers_config
 from uncertainty_mech.application.circuit_pipeline import run_circuit_study
 from uncertainty_mech.application.config import DataConfig, ModelConfig, load_config
 from uncertainty_mech.application.pipeline import run_pipeline
 from uncertainty_mech.application.ports import CircuitModel, LanguageModel, QuestionSource, ReferenceCorpus
+from uncertainty_mech.application.tiers_pipeline import run_tiers_study
 from uncertainty_mech.domain.questions import Role, Stratum
 from uncertainty_mech.infrastructure.entity_pairs import EntityPairSource
 from uncertainty_mech.infrastructure.fictional import FictionalHealthSource
@@ -54,6 +56,8 @@ def main(
         return _run(args.config, model_factory, real_source_factory)
     if args.command == "circuits":
         return _circuits(args.config, circuit_model_factory or _huggingface_model, real_source_factory)
+    if args.command == "tiers":
+        return _tiers(args.config, circuit_model_factory or _huggingface_model)
     return _ask(args.run_dir, args.questions, model_factory)
 
 
@@ -69,6 +73,10 @@ def _parser() -> argparse.ArgumentParser:
         "circuits", help="Find the abstention circuit and test semantic-entropy steering on a finished run."
     )
     circuits.add_argument("--config", type=Path, required=True)
+    tiers = commands.add_parser(
+        "tiers", help="Tiered semantic-entropy steering, reusing a finished circuit study's vectors."
+    )
+    tiers.add_argument("--config", type=Path, required=True)
     return parser
 
 
@@ -102,6 +110,19 @@ def _circuits(config_path: Path, model_factory: CircuitModelFactory, real_source
         corpus = real_source_factory(data_config, int(source_config["seed"])).corpus_words()
         pairs = EntityPairSource(config.pairs.names_per_fact, config.seed, exclude_words=corpus | used_names).load()
         summary = run_circuit_study(config, pairs, model_factory(config.model), source, store, MatplotlibFigures())
+    print(json.dumps(summary, indent=2, default=str))
+    return 0
+
+
+def _tiers(config_path: Path, model_factory: CircuitModelFactory) -> int:
+    config = load_tiers_config(config_path)
+    store = FileRunStore(config.run_dir)
+    circuit_store = FileRunStore(config.circuit_run)
+    source = FileRunStore(Path(circuit_store.read_json("config.json")["source_run"]))
+    with _log_to(store):
+        summary = run_tiers_study(
+            config, model_factory(config.model), circuit_store, source, store, MatplotlibFigures()
+        )
     print(json.dumps(summary, indent=2, default=str))
     return 0
 

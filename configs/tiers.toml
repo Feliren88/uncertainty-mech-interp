@@ -1,0 +1,19 @@
+# Tiered semantic-entropy steering on its own, reusing the circuit study's steering vectors.
+run_id = "tiered-se-steering"
+seed = 29
+output_root = "../runs"
+circuit_run = "../runs/circuit-se-steering"
+
+[model]
+name = "meta-llama/Llama-3.1-8B-Instruct"
+revision = "0e9e39f249a16976918f6564b8830bc894c89659"
+dtype = "bfloat16"
+batch_size = 32
+
+[tiers]
+dose_grid = [0.5, 1.0, 2.0, 4.0, 8.0]
+tier_thresholds = [0.2, 0.4, 0.6, 0.8, 1.0, 1.2]
+max_tiers = 3
+readout_quantiles = [0.5, 0.75, 0.9, 0.95]
+wrong_costs = [1.0, 2.0, 4.0]
+bootstrap_samples = 2000

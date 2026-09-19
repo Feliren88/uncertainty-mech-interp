@@ -17,10 +17,10 @@ from typing import Any
 import numpy as np
 
 from uncertainty_mech.application.circuit_config import SteeringGridConfig
-from uncertainty_mech.application.dataset import Dataset
+from uncertainty_mech.application.dataset import Dataset, dataset_from_rows
 from uncertainty_mech.application.patching import E_LETTERS, Head
-from uncertainty_mech.application.ports import Addition, CircuitModel, Site, SiteKind
-from uncertainty_mech.domain.grading import chosen_indices
+from uncertainty_mech.application.ports import Addition, CircuitModel, RunStore, Site, SiteKind
+from uncertainty_mech.domain.grading import chosen_indices, semantic_entropy
 from uncertainty_mech.domain.prompts import build_prompt
 from uncertainty_mech.domain.questions import OPTION_LETTERS, Role, Stratum
 
@@ -48,6 +48,7 @@ class EvalSet:
     se: np.ndarray
     answers: np.ndarray  # correct index, or -1 for invented entities
     forced_correct: np.ndarray  # the forced-choice answer (no option E) was right
+    groups: np.ndarray  # related questions share a group; bootstraps resample whole groups
 
     @property
     def real(self) -> np.ndarray:
@@ -63,7 +64,23 @@ class EvalSet:
             se=se[rows],
             answers=answers,
             forced_correct=chosen_indices(forced_logprobs[rows]) == answers,
+            groups=dataset.groups[rows],
         )
+
+
+def ensure_same_model(source: RunStore, model: CircuitModel) -> None:
+    """Semantic entropy and roles come from the source run, so the model must be the same revision."""
+    source_model = source.read_json("bundle.json")["model_name"]
+    if source_model != model.name:
+        raise ValueError(f"the source run used {source_model}, not {model.name}")
+
+
+def load_eval_sets(source: RunStore) -> tuple[EvalSet, EvalSet]:
+    """Calibration and test questions of a finished `run`, with its forced-choice semantic entropy."""
+    dataset = dataset_from_rows(source.read_table("items.csv"))
+    forced = source.read_arrays("readings.npz", keys=("letter_logprobs",))["letter_logprobs"]
+    se = semantic_entropy(forced)
+    return EvalSet.from_role(dataset, Role.CAL_PROB, forced, se), EvalSet.from_role(dataset, Role.TEST, forced, se)
 
 
 def outcome(choice: np.ndarray, items: EvalSet) -> dict[str, float]:

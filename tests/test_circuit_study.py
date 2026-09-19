@@ -44,6 +44,25 @@ readout_quantiles = [0.5, 0.9]
 wrong_costs = [1.0, 2.0]
 """
 
+TIERS_CONFIG = """
+run_id = "tiers"
+seed = 29
+output_root = "runs"
+circuit_run = "runs/circuits"
+
+[model]
+name = "fake-model"
+revision = "test"
+
+[tiers]
+dose_grid = [1.0, 2.0]
+tier_thresholds = [0.3, 0.6, 0.9]
+max_tiers = 2
+readout_quantiles = [0.5, 0.9]
+wrong_costs = [1.0, 2.0]
+bootstrap_samples = 200
+"""
+
 EXPECTED_FILES = [
     "config.json",
     "pairs.csv",
@@ -62,6 +81,8 @@ EXPECTED_FILES = [
     "tiers_test.csv",
     "tiers_bands.csv",
     "tiers_top_schedules.csv",
+    "tiers_comparisons.csv",
+    "tiers_predictions.csv",
     "summary.json",
     "report.md",
     "figures/residual_patching.png",
@@ -100,6 +121,10 @@ def study(tmp_path_factory):
             real_source_factory=lambda _data, _seed: source,
         )
         == 0
+    )
+    (root / "tiers.toml").write_text(TIERS_CONFIG, encoding="utf-8")
+    assert (
+        main(["tiers", "--config", str(root / "tiers.toml")], circuit_model_factory=lambda _config: circuit_model) == 0
     )
     return root / "runs" / "circuits"
 
@@ -147,3 +172,17 @@ def test_tiered_controllers_nest_on_calibration_and_beat_random_heads_on_test(st
 def test_circuit_readout_separates_invented_from_real(study):
     summary = json.loads((study / "summary.json").read_text())
     assert summary["readout_auroc_invented"] > 0.9
+
+
+def test_tiers_command_reuses_the_circuit_and_reports_bootstrap_intervals(study):
+    tiers = study.parent / "tiers"
+    for name in ("report.md", "summary.json", "tiers_test.csv", "tiers_comparisons.csv", "figures/tiers_tradeoff.png"):
+        assert (tiers / name).is_file(), name
+    comparisons = _rows(tiers / "tiers_comparisons.csv")
+    assert comparisons
+    for row in comparisons:
+        assert float(row["low_95"]) <= float(row["difference"]) <= float(row["high_95"])
+    predictions = _rows(tiers / "tiers_predictions.csv")
+    assert len(predictions) == len(_rows(study.parent / "e2e" / "items.csv")) - sum(
+        row["role"] != "test" for row in _rows(study.parent / "e2e" / "items.csv")
+    )

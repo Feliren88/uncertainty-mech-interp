@@ -94,3 +94,27 @@ def risk_quality(risk: np.ndarray, errors: np.ndarray, bins: int = 10) -> RiskQu
         ece=expected_calibration_error(risk, errors, bins),
         aurc=float(curve.mean()),
     )
+
+
+def group_bootstrap_difference(
+    a: np.ndarray,
+    b: np.ndarray,
+    groups: np.ndarray,
+    rng: np.random.Generator,
+    samples: int = 2000,
+    mask: np.ndarray | None = None,
+) -> tuple[float, float, float]:
+    """Mean of a - b over the masked items, with a 95% interval from resampling whole groups.
+
+    Related items (an invented entity's three questions) share a group, so they
+    are drawn together, as protocol section 6 asks.
+    """
+    keep = np.ones(len(a), dtype=bool) if mask is None else np.asarray(mask, dtype=bool)
+    difference = (np.asarray(a, dtype=float) - np.asarray(b, dtype=float))[keep]
+    _, group_index = np.unique(np.asarray(groups)[keep], return_inverse=True)
+    sums = np.bincount(group_index, weights=difference)
+    counts = np.bincount(group_index).astype(float)
+    draws = rng.integers(0, len(sums), size=(samples, len(sums)))
+    estimates = sums[draws].sum(axis=1) / counts[draws].sum(axis=1)
+    low, high = np.quantile(estimates, [0.025, 0.975])
+    return float(difference.mean()), float(low), float(high)
