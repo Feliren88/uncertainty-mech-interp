@@ -1,6 +1,6 @@
 # Health "I don't know" gate
 
-This code lets Llama 3.1 8B Instruct answer a medical multiple-choice question only when a probe on its own activations says the answer is likely right. Otherwise it replies exactly `I don't know.` It implements the inference gate from the research design in `../uncertainty-mech-interp/` (RFC Version 1.3 and `protocol.md`) and test-runs it on health questions.
+This code lets Llama 3.1 8B Instruct answer a medical multiple-choice question only when a probe on its own activations says the answer is likely right. Otherwise it replies exactly `I don't know.` It implements the inference gate from the research design in `../uncertainty-mech-interp/` (RFC Version 1.3 and `protocol.md`) and test-runs it on health questions. A follow-on study finds the attention heads that make the model say "I don't know" and switches them on with semantic entropy (see the circuit section below).
 
 ## Result
 
@@ -36,13 +36,67 @@ Demo, `examples/health_questions.jsonl`:
 
 A probe on the residual stream (the vector that each transformer layer reads from and adds to) at the last prompt token predicts a wrong answer with AUROC 0.70 at layer 0. It rises between layers 12 and 18 and levels off at 0.83 from layer 18. The gate uses layer 19. See `runs/health-llama31-8b-full-run/figures/layer_sweep.png`.
 
-### The steering check found no causal handle on "I don't know"
+### A single residual direction did not steer abstention
 
-The "error direction" is the mean activation for wrong answers minus the mean for right answers. Adding it to layer 19 did not raise the probability that the model picks "I don't know" beyond what random directions of the same size did. At four times the class difference it cut MedQA accuracy from 67.6% to 55.3%. Subtracting it moved the probability of "I don't know" from 0.087 to 0.099, a small shift in the opposite direction to the hypothesis. The direction reads errors, but pushing along it at this layer does not make the model abstain. The check is exploratory, with one layer, one direction and 200 prompts.
+The gate run also tried the simplest intervention. It added the "error direction" (mean activation for wrong answers minus right answers) to layer 19 at every position. That did not raise the probability of "I don't know" beyond random directions of the same size, and at four times the class difference it cut MedQA accuracy from 67.6% to 55.3%. The direction reads errors but does not drive abstention. The circuit study below finds components that do.
 
 ### The first run failed, and why
 
 The first test run (4,600 questions, `configs/health_test_run.toml`) certified no threshold. Its 427 independent calibration questions could not rule out an error rate above 10%. The tightest bound was 15.9%. Following the protocol, that gate answered nothing. The second run used all 10,000 unique MedQA training questions and gave the calibration role 30% of them (3,148 independent units). It also widened the probe regularization grid, because the first run picked the grid's edge. The 10% target stayed fixed. `docs/specs/2026-09-18-health-idk-gate-design.md` records both changes. Because the two runs share questions, the second run counts as a larger test run. A confirmatory study would need fresh questions.
+
+## The "I don't know" circuit and semantic-entropy steering
+
+Llama 3.1 8B already has an "I don't know" pathway, and we can find it. It fires when the entity in a question is unfamiliar, and it runs through a few attention heads in layers 15 to 17. Copying the outputs of two of them (L15.H4 and L17.H25) moves half of the way from "answer" to "I don't know". Switching those heads on whenever semantic entropy is high makes the model say "I don't know" itself. On MedQA test questions, its error rate among answers falls from 33.0% to 21.3%, and it refuses 86.9% of invented-entity questions instead of 60.6%. Random heads do nothing. On real questions it matches, but does not beat, simply thresholding semantic entropy outside the model. Full report: `runs/circuit-se-steering/report.md`.
+
+### The pathway follows entity familiarity
+
+| Question type | Median semantic entropy | Picks "I don't know" when offered |
+|---|---|---|
+| Real, answered correctly | 0.13 nats | 0% |
+| Real, answered wrong | 0.75 nats | 2% |
+| Invented entity | 0.74 nats | 63% |
+
+Semantic entropy (the spread of the model's answer distribution over the four options) is as high on real questions it gets wrong as on invented ones, yet it only abstains on the invented ones.
+
+### Where the signal travels
+
+Activation patching copies one internal activation from a prompt about an invented entity into the matched prompt about a real one, and measures how far the abstention gap (log P("I don't know") minus log P(any answer)) moves toward the invented prompt. The study uses 225 matched pairs built from 75 well-known health facts.
+
+1. **Entity token, layers 0 to 6.** Patching the last entity token moves 21% to 27% of the gap. The effect fades by layer 10.
+2. **Instruction tail, layers 12 to 16.** The signal passes through the shared instruction tokens, peaking at 47% at layer 14.
+3. **Final token, from layer 14.** The final token carries 45% at layer 14, 91% at layer 16 and 98% at layer 18.
+
+At the final token, single heads L15.H4 and L17.H25 each move 32% of the gap, and L30.H27 moves 31%. One head, L30.H25, moves -51%, so on invented prompts it pushes against "I don't know". On discovery pairs, the top 8 heads together move 92%.
+
+Patching these heads changes whether the model abstains but not its semantic entropy (change 0.001 nats). In this model, abstaining and being unsure about the answer look like separate mechanisms. That fits the earlier finding that offering "I don't know" barely helps on hard real questions.
+
+### The circuit on held-out pairs
+
+| Patch on 99 test pairs | Circuit (2 heads) | 5 random sets of 2 heads |
+|---|---|---|
+| Invented into real (sufficiency) | 51.0% of the gap | -1.9% (-9.4% to 0.2%) |
+| Real into invented (necessity) | 21.0%; abstention drops from 76.8% to 25.3% | -0.2% |
+
+### Switching the circuit on with semantic entropy
+
+Steering adds the circuit's "invented minus real" output to its two heads at the final token. All conditions use the prompt that offers "E. I don't know", so the reply is the model's own. Dose and threshold were chosen on the second run's calibration role and scored once on its test role (2,388 questions).
+
+| Condition | Answered | Wrong among answered | Invented refused | Net correct |
+|---|---|---|---|---|
+| Option E only | 91.3% | 33.0% | 60.6% | 0.311 |
+| SE wrapper (reply "I don't know" when SE > 0.7) | 64.5% | 21.9% | 73.4% | 0.362 |
+| SE-gated circuit steering (SE > 0.2, dose 1) | 62.2% | 21.3% | 86.9% | 0.357 |
+| SE-scaled circuit steering (dose 2 x SE / ln 4) | 63.4% | 21.1% | 83.8% | 0.366 |
+| Control: same gate, random heads | 91.3% | 33.0% | 60.9% | 0.310 |
+| Control: same gate, random vectors at the circuit heads | 90.2% | 32.7% | 64.3% | 0.312 |
+
+Net correct is right answers minus wrong answers, per question. Among real questions above the gate, circuit steering turned 60.1% of wrong answers and 46.1% of right answers into "I don't know"; random heads turned none. The push is somewhat selective, and the model's own evidence sets which answers flip. At dose 4 and above every gated answer flips, and the result equals the SE wrapper at the same threshold.
+
+### Limits of the circuit study
+
+- Patching at the final token shows where the model reads the signal. The route from the entity to the tail is only partly mapped.
+- Invented names differ from real ones in form as well as familiarity. Real drug names carry class suffixes such as -pril or -statin, and the pairs cannot separate the two.
+- The steering vectors come from templated pairs and transfer to MedQA prompts in this one format; other formats need their own test.
 
 ## How it works
 
@@ -68,7 +122,10 @@ python -m uncertainty_mech run --config configs/health_smoke.toml     # 120 ques
 python -m uncertainty_mech run --config configs/health_full_run.toml  # 11,500 questions, about 30 min on one A100
 python -m uncertainty_mech ask --run-dir runs/health-llama31-8b-full-run \
     --questions examples/health_questions.jsonl
+python -m uncertainty_mech circuits --config configs/circuit_study.toml  # patching and steering, about 45 min
 ```
+
+`circuits` reads the full run's directory (its model, items, roles and saved answer distributions) and writes `runs/circuit-se-steering/`: `report.md`, three figures, and a CSV for every sweep, including per-question predictions under each steering condition.
 
 `scripts/test_run.sh` runs the test, the smoke run, the 4,600-question run and the demo in one go.
 
@@ -89,8 +146,8 @@ Dependencies point inward. The domain knows nothing about models or files, and o
 | Layer | Folder | Holds | Imports |
 |---|---|---|---|
 | Domain | `src/uncertainty_mech/domain/` | Questions and roles, prompts, grading, the risk certificate, metrics, the release decision | NumPy, SciPy |
-| Application | `src/uncertainty_mech/application/` | Use cases (dataset, gates, evaluation, steering, answering, report) and the ports they call | Domain |
-| Infrastructure | `src/uncertainty_mech/infrastructure/` | Hugging Face model with hooks, MedQA source, invented-question generator, file store, figures | Application ports, domain |
+| Application | `src/uncertainty_mech/application/` | Use cases (dataset, gates, evaluation, steering, answering, report; entity pairs, patching sweeps, SE steering) and the ports they call, including a `CircuitModel` port that captures, patches and adds to activations | Domain |
+| Infrastructure | `src/uncertainty_mech/infrastructure/` | Hugging Face model with hooks on the residual stream, attention-head outputs and MLPs; MedQA source; invented-question generator; curated health facts and matched pairs; file store; figures | Application ports, domain |
 | Composition root | `src/uncertainty_mech/cli.py` | Wires adapters to use cases for `run` and `ask` | Everything |
 
 The end-to-end test swaps the model and MedQA for fakes through the same ports, so it runs the real pipeline code on a CPU.
@@ -104,6 +161,8 @@ As requested, the tests are end to end only. `tests/test_end_to_end.py` runs `ru
 - the chosen threshold obeys the certificate rule;
 - a zero-dose steering hook leaves the output unchanged;
 - `ask` answers a known question and says `I don't know.` to an invented one.
+
+`tests/test_circuit_study.py` runs `run` and then `circuits` on a fake four-layer model with one planted abstention head (layer 2, head 1). It checks that the head sweep ranks the planted head first, that the circuit beats random heads on held-out pairs, that SE-gated steering turns uncertain answers into "I don't know" while random heads do not, and that every artifact is written.
 
 The GPU runs are the real end-to-end tests. The smoke run caught one bug the fake could not. MedQA sampling reused the hash that assigns roles, so every sampled question landed in `discovery`. Sampling now has its own hash stream, and the test checks role balance.
 
