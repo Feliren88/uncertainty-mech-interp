@@ -139,3 +139,28 @@ path from the entity. Head effects can be distributed, so the circuit may be
 large. Invented names differ in morphology as well as familiarity. Steering
 results hold for this prompt format only. Negative results are reported as
 results.
+
+## Addendum: tiered semantic-entropy steering, 19 September 2026
+
+A single SE threshold either leaves a question alone or pushes the circuit at
+one dose. Stage 4 replaces it with a schedule. Up to three SE thresholds
+`t1 < t2 < t3` map to non-decreasing doses `d1 <= d2 <= d3`, so a question
+with SE above `tk` is steered at dose `dk`. A second trigger reads the circuit
+itself: the projection of the circuit heads' final-token outputs onto their
+steering directions in the plain pass ("circuit readout"). Above a threshold
+`r`, the dose rises to at least a boost dose. This targets confident
+hallucinations about unfamiliar entities, which SE misses.
+
+The reply is always the model's own letter under its dose. Model passes run
+once per dose in a fixed grid; any schedule is then scored by taking each
+question's letter from the pass at its dose, which is exact because prompts
+do not interact.
+
+Schedules are chosen on `cal_prob` to maximize `(right - lambda * wrong) / n`
+for lambda in {1, 2, 4}: a wrong health answer costs lambda times what a right
+answer gains. The test role reports, per lambda, abstention on questions the
+model does not know (invented entities plus forced-choice wrong answers) and
+false abstention on questions it knows (forced-choice right answers), for the
+SE wrapper, single-threshold circuit steering, tiered circuit steering, tiered
+steering plus the readout trigger, and the tiered schedule applied to random
+heads. The circuit study also saves its steering vectors.
