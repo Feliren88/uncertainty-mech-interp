@@ -118,6 +118,8 @@ def _write_tables(store: RunStore, results: CircuitResults) -> None:
     store.write_table("steering_calibration.csv", results.calibration_rows)
     store.write_table("steering_test.csv", results.evaluation.rows)
     store.write_table("steering_flips.csv", results.evaluation.flips)
+    store.write_table("steering_curves.csv", results.evaluation.curve_rows)
+    store.write_table("steering_predictions.csv", results.evaluation.predictions)
     store.write_json(
         "circuit.json",
         {
@@ -329,6 +331,9 @@ def _heads(results: CircuitResults) -> str:
             f"*The strongest single head, L{top[0]['layer']}.H{top[0]['head']}, moves "
             f"{_pct(top[0]['restoration_gap'])} of the abstention gap on its own.*",
             _table(["Head", "Gap moved", "Change in gap (nats)", "Change in SE (nats)"], rows),
+            f"The strongest head in the other direction is L{ranked[-1]['layer']}.H{ranked[-1]['head']}, at "
+            f"{_pct(ranked[-1]['restoration_gap'])}: copying its invented-prompt output makes the real prompt even "
+            'less likely to abstain, so on invented prompts it pushes against "I don\'t know".',
             f"The MLPs that move the gap most at the final token are {mlp_text}.",
         ]
     )

@@ -157,11 +157,13 @@ class MatplotlibFigures:
                     wrong[keep],
                     color=_COLORS[name],
                     marker="s" if control else "o",
-                    markersize=5 if control else 3,
+                    markersize=11 if control else 3,
                     markerfacecolor="none" if control else _COLORS[name],
+                    markeredgewidth=1.2,
                     linestyle="--" if control else "-",
                     linewidth=1.3,
                     label=_LABELS[name],
+                    zorder=4 if control else 2,  # controls on top: they often sit on the baseline point
                 )
             ordered = sorted(points.items(), key=lambda item: item[0] == "prompt_only")
             for name, (answered, wrong) in ordered:

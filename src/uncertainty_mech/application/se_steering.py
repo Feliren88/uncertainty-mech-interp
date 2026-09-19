@@ -139,6 +139,8 @@ class SteeringEvaluation:
     rows: list[dict[str, Any]]  # one per condition
     flips: list[dict[str, Any]]  # among gated real questions: how often steering flips right vs wrong answers to E
     curves: dict[str, tuple[np.ndarray, np.ndarray]]  # answered share and wrong-among-answered over tau
+    curve_rows: list[dict[str, Any]]  # the same curves as a table
+    predictions: list[dict[str, Any]]  # one per test item: SE, answer and the letter chosen under each pass
 
 
 def evaluate(
@@ -190,7 +192,28 @@ def evaluate(
         "se_gated_circuit": _curve(items, [_gated(items.se, t, steered, plain) for t in thresholds]),
         "control_random_heads": _curve(items, [_gated(items.se, t, steered_random_heads, plain) for t in thresholds]),
     }
-    return SteeringEvaluation(rows, flips, curves)
+    curve_rows = [
+        {"condition": name, "tau": tau, "answered_share": float(x), "wrong_among_answered": float(y)}
+        for name, (answered, wrong) in curves.items()
+        for tau, x, y in zip(thresholds, answered, wrong, strict=True)
+    ]
+    passes = {
+        "plain": plain,
+        "circuit": steered,
+        "circuit_scaled": scaled,
+        "random_heads": steered_random_heads,
+        "random_vectors": steered_random_vectors,
+    }
+    predictions = [
+        {
+            "se": float(items.se[i]),
+            "answer": int(items.answers[i]),
+            "forced_correct": bool(items.forced_correct[i]),
+            **{f"choice_{name}": int(choice[i]) for name, choice in passes.items()},
+        }
+        for i in range(len(items.prompts))
+    ]
+    return SteeringEvaluation(rows, flips, curves, curve_rows, predictions)
 
 
 def _curve(items: EvalSet, choices: Sequence[np.ndarray]) -> tuple[np.ndarray, np.ndarray]:

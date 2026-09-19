@@ -48,6 +48,8 @@ EXPECTED_FILES = [
     "steering_calibration.csv",
     "steering_test.csv",
     "steering_flips.csv",
+    "steering_curves.csv",
+    "steering_predictions.csv",
     "summary.json",
     "report.md",
     "figures/residual_patching.png",
