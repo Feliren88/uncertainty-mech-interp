@@ -1,0 +1,25 @@
+# Abstention circuit and semantic-entropy steering on Llama 3.1 8B Instruct.
+# Reads the second health run: its model, items, roles and forced-choice readings.
+run_id = "circuit-se-steering"
+seed = 23
+output_root = "../runs"
+source_run = "../runs/health-llama31-8b-full-run"
+
+[model]
+name = "meta-llama/Llama-3.1-8B-Instruct"
+revision = "0e9e39f249a16976918f6564b8830bc894c89659"
+dtype = "bfloat16"
+batch_size = 32
+
+[pairs]
+names_per_fact = 3
+discovery_share = 0.6
+
+[circuit]
+k_grid = [1, 2, 4, 8, 16, 32]
+sufficiency_threshold = 0.5
+n_random = 5
+
+[steering]
+doses = [1.0, 2.0, 4.0, 8.0]
+se_thresholds = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3]

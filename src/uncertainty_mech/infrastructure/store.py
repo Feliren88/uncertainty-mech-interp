@@ -26,9 +26,9 @@ class FileRunStore:
     def write_arrays(self, name: str, **arrays: np.ndarray) -> None:
         np.savez(self._path(name), **arrays)
 
-    def read_arrays(self, name: str) -> dict[str, np.ndarray]:
+    def read_arrays(self, name: str, keys: Sequence[str] | None = None) -> dict[str, np.ndarray]:
         with np.load(self.root / name) as data:
-            return {key: data[key] for key in data.files}
+            return {key: data[key] for key in (keys or data.files)}
 
     def write_table(self, name: str, rows: Sequence[dict[str, Any]]) -> None:
         fields = list(dict.fromkeys(key for row in rows for key in row))
@@ -36,6 +36,10 @@ class FileRunStore:
             writer = csv.DictWriter(handle, fieldnames=fields)
             writer.writeheader()
             writer.writerows(rows)
+
+    def read_table(self, name: str) -> list[dict[str, str]]:
+        with (self.root / name).open(newline="", encoding="utf-8") as handle:
+            return list(csv.DictReader(handle))
 
     def write_text(self, name: str, text: str) -> None:
         self._path(name).write_text(text, encoding="utf-8")

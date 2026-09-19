@@ -13,7 +13,7 @@ import numpy as np
 from uncertainty_mech.application.config import RunConfig
 from uncertainty_mech.application.ports import LanguageModel, Readings
 from uncertainty_mech.domain.prompts import answer_letters, build_prompt
-from uncertainty_mech.domain.questions import HealthQuestion, Role
+from uncertainty_mech.domain.questions import HealthQuestion, Role, Stratum
 from uncertainty_mech.domain.splits import assign_roles, canonical_mask
 
 
@@ -70,3 +70,23 @@ def read_questions(
 ) -> Readings:
     prompts = [build_prompt(q.question, q.options, allow_abstain=allow_abstain) for q in questions]
     return model.read(prompts, answer_letters(allow_abstain), capture_residuals=capture_residuals)
+
+
+def dataset_from_rows(rows: Sequence[dict[str, str]]) -> Dataset:
+    """Rebuild a finished run's dataset from its `items.csv`."""
+    questions = tuple(
+        HealthQuestion(
+            item_id=row["item_id"],
+            group_id=row["group_id"],
+            stratum=Stratum(row["stratum"]),
+            question=row["question"],
+            options=tuple(json.loads(row["options_json"])),
+            answer_index=None if row["answer_index"] == "" else int(row["answer_index"]),
+        )
+        for row in rows
+    )
+    return Dataset(
+        questions=questions,
+        roles=np.array([row["role"] for row in rows]),
+        canonical=np.array([row["canonical"] == "True" for row in rows]),
+    )
