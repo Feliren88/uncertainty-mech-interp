@@ -2,6 +2,8 @@
 
 This code lets Llama 3.1 8B Instruct answer a medical multiple-choice question only when a probe on its own activations says the answer is likely right. Otherwise it replies exactly `I don't know.` It implements the inference gate from the research design in `../uncertainty-mech-interp/` (RFC Version 1.3 and `protocol.md`) and test-runs it on health questions. A follow-on study finds the attention heads that make the model say "I don't know" and switches them on with semantic entropy (see the circuit section below).
 
+The full narrative write-up of all four experiments, with methodology, results, discussion and references, is in [docs/report/2026-09-19-health-idk-report.md](docs/report/2026-09-19-health-idk-report.md).
+
 ## Result
 
 On 2,388 held-out test questions, the gate answered 745 (31.2%) and got 44 of them wrong (5.9%). Without the gate, the model answered everything and was wrong on 37.7%. The target was an error rate of at most 10% among answered questions, with 95% confidence. On the test data the one-sided 95% upper bound is 7.5%, so the held-out result agrees with the calibration certificate.
@@ -64,7 +66,7 @@ Activation patching copies one internal activation from a prompt about an invent
 
 1. **Entity token, layers 0 to 6.** Patching the last entity token moves 21% to 27% of the gap. The effect fades by layer 10.
 2. **Instruction tail, layers 12 to 16.** The signal passes through the shared instruction tokens, peaking at 47% at layer 14.
-3. **Final token, from layer 14.** The final token carries 45% at layer 14, 91% at layer 16 and 98% at layer 18.
+3. **Final token, from layer 14.** The final token carries 45% at layer 14, 91% at layer 15 and 98% at layer 18.
 
 At the final token, single heads L15.H4 and L17.H25 each move 32% of the gap, and L30.H27 moves 31%. One head, L30.H25, moves -51%, so on invented prompts it pushes against "I don't know". On discovery pairs, the top 8 heads together move 92%.
 
