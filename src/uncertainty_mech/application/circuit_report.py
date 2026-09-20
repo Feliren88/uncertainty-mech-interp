@@ -214,7 +214,7 @@ def _markdown(results: CircuitResults, summary: dict[str, Any]) -> str:
         _headline(results, summary),
         "## Matched pairs",
         _pairs(results),
-        "## Where the signal lives in the residual stream",
+        "## Location of the signal in the residual stream",
         _residual(results),
         "## Attention heads at the final token",
         _heads(results),
@@ -229,7 +229,7 @@ def _markdown(results: CircuitResults, summary: dict[str, Any]) -> str:
             [
                 "- Patching at the final token finds where the model reads the signal. The path from the entity "
                 "to the final token is only partly mapped.",
-                "- Invented names differ from real ones in familiarity and in form (real drug names carry class "
+                "- Invented names differ from real ones in familiarity and in form (real drug names contain class "
                 "suffixes such as -pril or -statin). The pairs cannot separate the two.",
                 "- The steering vectors come from templated pairs and are applied to MedQA prompts; the transfer is "
                 "an empirical result for this prompt format only.",
@@ -255,7 +255,7 @@ def _headline(results: CircuitResults, summary: dict[str, Any]) -> str:
         f"(dose {results.points.gated_dose:g}), the model answered {_pct(gated['answered_share'])} of MedQA test "
         f"questions and was wrong on {_pct(gated['wrong_among_answered'])} of its answers. With option E alone it "
         f"answered {_pct(plain['answered_share'])} and was wrong on {_pct(plain['wrong_among_answered'])}. An SE "
-        f'wrapper that replies "I don\'t know" without touching the model answered '
+        f'wrapper that replies "I don\'t know" without changing any activation answered '
         f"{_pct(wrapper['answered_share'])} with {_pct(wrapper['wrong_among_answered'])} wrong."
     )
 
@@ -337,7 +337,7 @@ def _heads(results: CircuitResults) -> str:
             _table(["Head", "Gap moved", "Change in gap (nats)", "Change in SE (nats)"], rows),
             f"The strongest head in the other direction is L{ranked[-1]['layer']}.H{ranked[-1]['head']}, at "
             f"{_pct(ranked[-1]['restoration_gap'])}: copying its invented-prompt output makes the real prompt even "
-            'less likely to abstain, so on invented prompts it pushes against "I don\'t know".',
+            'less likely to abstain, so its output on invented prompts acts against "I don\'t know".',
             f"The MLPs that move the gap most at the final token are {mlp_text}.",
         ]
     )
@@ -428,8 +428,8 @@ def _steering(results: CircuitResults) -> str:
             "![SE steering](figures/se_steering.png)",
             f"*Among real questions above the gate, circuit steering turned {_pct(right)} of previously right answers "
             f'and {_pct(wrong)} of previously wrong answers into "I don\'t know".*',
-            "The circuit adds information beyond semantic entropy only if it flips wrong answers more often than right "
-            "ones and more selectively than the controls:",
+            "The circuit adds information beyond semantic entropy only if wrong answers are changed to E more often "
+            "than right ones, and more often than under the controls.",
             _table(["Steering", "Real answers before steering", "n", "Turned into E"], flips),
         ]
     )

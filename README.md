@@ -1,12 +1,12 @@
 # Health "I don't know" gate
 
-This code lets Llama 3.1 8B Instruct answer a medical multiple-choice question only when a probe on its own activations says the answer is likely right. Otherwise it replies exactly `I don't know.` It implements the inference gate from the research design in `../uncertainty-mech-interp/` (RFC Version 1.3 and `protocol.md`) and test-runs it on health questions. A follow-on study finds the attention heads that make the model say "I don't know" and switches them on with semantic entropy (see the circuit section below).
+This code lets Llama 3.1 8B Instruct answer a medical multiple-choice question only when a probe on its activations predicts that the answer is right. Otherwise it replies exactly `I don't know.` It implements the inference gate from the research design in `../uncertainty-mech-interp/` (RFC Version 1.3 and `protocol.md`) and test-runs it on health questions. A follow-on study locates the attention heads that produce the model's "I don't know" response and activates them using semantic entropy (see the circuit section below).
 
 The full narrative write-up of all four experiments, with methodology, results, discussion and references, is in [docs/report/2026-09-19-health-idk-report.md](docs/report/2026-09-19-health-idk-report.md).
 
 ## Result
 
-On 2,388 held-out test questions, the gate answered 745 (31.2%) and got 44 of them wrong (5.9%). Without the gate, the model answered everything and was wrong on 37.7%. The target was an error rate of at most 10% among answered questions, with 95% confidence. On the test data the one-sided 95% upper bound is 7.5%, so the held-out result agrees with the calibration certificate.
+On 2,388 held-out test questions, the gate answered 745 (31.2%), of which 44 were wrong (5.9%). Without the gate, the model answered everything and was wrong on 37.7%. The target was an error rate of at most 10% among answered questions, with 95% confidence. On the test data the one-sided 95% upper bound is 7.5%, so the held-out result agrees with the calibration certificate.
 
 | Method | Answered | Wrong among answered | Invented questions refused | Right answers kept |
 |---|---|---|---|---|
@@ -18,12 +18,12 @@ On 2,388 held-out test questions, the gate answered 745 (31.2%) and got 44 of th
 
 Source: `runs/health-llama31-8b-full-run/report.md`, test role. "Invented questions" ask about drugs and diseases that do not exist, so every answer to them is a hallucination.
 
-1. **Asking the model to say "I don't know" barely helps on real questions.** With option E offered, it still answered 98.7% of MedQA questions and was wrong on 29.4% of them.
-2. **The gate refused every invented question.** All 297 got `I don't know.` The output-statistics gate let 15 through, and the prompt let 116 through.
-3. **On real MedQA questions, activations did not beat output statistics.** Test AUROC (the chance that a wrong answer gets a higher risk than a right one) was 0.78 for the combined gate and 0.80 for output statistics alone. The activation features help with invented entities and add nothing on hard real questions.
-4. **The price is coverage.** To keep errors under 10%, the gate answers about a third of questions and drops about half of the answers the model would have gotten right.
+1. **Offering "I don't know" changes little on real questions.** With option E offered, the model answered 98.7% of MedQA questions and was wrong on 29.4% of them.
+2. **The gate refused every invented question.** All 297 got `I don't know.` The output-statistics gate released 15 of them, and the prompt released 116.
+3. **On real MedQA questions, activations did not beat output statistics.** Test AUROC (the chance that a wrong answer gets a higher risk than a right one) was 0.78 for the combined gate and 0.80 for output statistics alone. The activation features separate invented entities; on real questions they add nothing.
+4. **Coverage falls.** To keep errors under 10%, the gate answers 31.2% of questions and keeps 47.1% of the answers that were right without it.
 
-A stricter gate looks possible. After the run, the calibration table showed that threshold 0.07 would have certified the RFC's original 5% target (588 of 3,148 calibration questions answered, 14 wrong, bound 4.7%). This reading came after the run, from calibration data, and the test role never checked it.
+A stricter target is reachable. After the run, the calibration table showed that threshold 0.07 would have certified the RFC's original 5% target (588 of 3,148 calibration questions answered, 14 wrong, bound 4.7%). This reading came after the run, from calibration data, and the test role never checked it.
 
 Demo, `examples/health_questions.jsonl`:
 
@@ -34,21 +34,21 @@ Demo, `examples/health_questions.jsonl`:
 | Gene behind "Marrowick-Tessel syndrome" (invented) | I don't know. | 0.997 |
 | Treatment for low T4 with raised TSH | B. Levothyroxine | 0.096 |
 
-### Where the signal lives
+### Layer with the strongest error signal
 
 A probe on the residual stream (the vector that each transformer layer reads from and adds to) at the last prompt token predicts a wrong answer with AUROC 0.70 at layer 0. It rises between layers 12 and 18 and levels off at 0.83 from layer 18. The gate uses layer 19. See `runs/health-llama31-8b-full-run/figures/layer_sweep.png`.
 
 ### A single residual direction did not steer abstention
 
-The gate run also tried the simplest intervention. It added the "error direction" (mean activation for wrong answers minus right answers) to layer 19 at every position. That did not raise the probability of "I don't know" beyond random directions of the same size, and at four times the class difference it cut MedQA accuracy from 67.6% to 55.3%. The direction reads errors but does not drive abstention. The circuit study below finds components that do.
+The gate run also tried the simplest intervention. It added the "error direction" (mean activation for wrong answers minus right answers) to layer 19 at every position. That did not raise the probability of "I don't know" beyond random directions of the same size, and at four times the class difference it cut MedQA accuracy from 67.6% to 55.3%. The direction predicts errors; it does not produce abstention. The circuit study below identifies components that do.
 
-### The first run failed, and why
+### Why the first run certified nothing
 
 The first test run (4,600 questions, `configs/health_test_run.toml`) certified no threshold. Its 427 independent calibration questions could not rule out an error rate above 10%. The tightest bound was 15.9%. Following the protocol, that gate answered nothing. The second run used all 10,000 unique MedQA training questions and gave the calibration role 30% of them (3,148 independent units). It also widened the probe regularization grid, because the first run picked the grid's edge. The 10% target stayed fixed. `docs/specs/2026-09-18-health-idk-gate-design.md` records both changes. Because the two runs share questions, the second run counts as a larger test run. A confirmatory study would need fresh questions.
 
 ## The "I don't know" circuit and semantic-entropy steering
 
-Llama 3.1 8B already has an "I don't know" pathway, and we can find it. It fires when the entity in a question is unfamiliar, and it runs through a few attention heads in layers 15 to 17. Copying the outputs of two of them (L15.H4 and L17.H25) moves half of the way from "answer" to "I don't know". Switching those heads on whenever semantic entropy is high makes the model say "I don't know" itself. On MedQA test questions, its error rate among answers falls from 33.0% to 21.3%, and it refuses 86.9% of invented-entity questions instead of 60.6%. Random heads do nothing. On real questions it matches, but does not beat, simply thresholding semantic entropy outside the model. Full report: `runs/circuit-se-steering/report.md`.
+Llama 3.1 8B has an "I don't know" pathway that can be located. It responds to unfamiliar entities and runs through a few attention heads in layers 15 to 17. Copying the outputs of two of them (L15.H4 and L17.H25) moves 51% of the abstention gap on held-out pairs. Activating those heads whenever semantic entropy is high makes the model answer "I don't know" itself. On MedQA test questions the error rate among answers falls from 33.0% to 21.3%, and refusal of invented-entity questions rises from 60.6% to 86.9%. Random heads produce no change. On real questions the result equals that of a semantic-entropy threshold applied outside the model. Full report: `runs/circuit-se-steering/report.md`.
 
 ### The pathway follows entity familiarity
 
@@ -58,19 +58,19 @@ Llama 3.1 8B already has an "I don't know" pathway, and we can find it. It fires
 | Real, answered wrong | 0.75 nats | 2% |
 | Invented entity | 0.74 nats | 63% |
 
-Semantic entropy (the spread of the model's answer distribution over the four options) is as high on real questions it gets wrong as on invented ones, yet it only abstains on the invented ones.
+Semantic entropy (the spread of the model's answer distribution over the four options) is as high on incorrect real answers (0.75 nats) as on invented entities (0.74 nats). Option E is chosen on 63% of invented-entity questions and on 2% of incorrect real answers.
 
-### Where the signal travels
+### Location of the signal
 
 Activation patching copies one internal activation from a prompt about an invented entity into the matched prompt about a real one, and measures how far the abstention gap (log P("I don't know") minus log P(any answer)) moves toward the invented prompt. The study uses 225 matched pairs built from 75 well-known health facts.
 
 1. **Entity token, layers 0 to 6.** Patching the last entity token moves 21% to 27% of the gap. The effect fades by layer 10.
-2. **Instruction tail, layers 12 to 16.** The signal passes through the shared instruction tokens, peaking at 47% at layer 14.
-3. **Final token, from layer 14.** The final token carries 45% at layer 14, 91% at layer 15 and 98% at layer 18.
+2. **Instruction tail, layers 12 to 16.** The effect in the shared instruction tokens reaches 47% at layer 14.
+3. **Final token, from layer 14.** The effect is 45% at layer 14, 91% at layer 15 and 98% at layer 18.
 
-At the final token, single heads L15.H4 and L17.H25 each move 32% of the gap, and L30.H27 moves 31%. One head, L30.H25, moves -51%, so on invented prompts it pushes against "I don't know". On discovery pairs, the top 8 heads together move 92%.
+At the final token, single heads L15.H4 and L17.H25 each move 32% of the gap, and L30.H27 moves 31%. One head, L30.H25, moves -51%, so its output on invented prompts acts against "I don't know". On discovery pairs, the top 8 heads together move 92%.
 
-Patching these heads changes whether the model abstains but not its semantic entropy (change 0.001 nats). In this model, abstaining and being unsure about the answer look like separate mechanisms. That fits the earlier finding that offering "I don't know" barely helps on hard real questions.
+Patching these heads changes whether the model abstains but not its semantic entropy (change 0.001 nats). In this model, abstaining and being unsure about the answer look like separate mechanisms. That fits the earlier finding that offering "I don't know" changes little on real questions.
 
 ### The circuit on held-out pairs
 
@@ -92,11 +92,11 @@ Steering adds the circuit's "invented minus real" output to its two heads at the
 | Control: same gate, random heads | 91.3% | 33.0% | 60.9% | 0.310 |
 | Control: same gate, random vectors at the circuit heads | 90.2% | 32.7% | 64.3% | 0.312 |
 
-Net correct is right answers minus wrong answers, per question. Among real questions above the gate, circuit steering turned 60.1% of wrong answers and 46.1% of right answers into "I don't know"; random heads turned none. The push is somewhat selective, and the model's own evidence sets which answers flip. At dose 4 and above every gated answer flips, and the result equals the SE wrapper at the same threshold.
+Net correct is right answers minus wrong answers, per question. Among real questions above the gate, circuit steering turned 60.1% of wrong answers and 46.1% of right answers into "I don't know"; random heads turned none. Changes to E were more frequent for answers that were wrong before steering. At dose 4 and above, every gated answer became E on calibration questions, and the result equals the SE wrapper at the same threshold.
 
 ### Several SE thresholds plus the circuit's own readout
 
-One threshold either leaves a question alone or pushes the circuit at a single dose. A tiered schedule uses up to three SE thresholds, each with a stronger push, so the model's own evidence can still resist a mild push on borderline questions. A second trigger reads the circuit itself, measuring how far heads L15.H4 and L17.H25 point along their "invented" direction in the plain pass. That readout separates invented from real questions with AUROC 0.994, so it catches confident hallucinations about unfamiliar entities that SE misses. Schedules are chosen on calibration questions to maximize right answers minus c times wrong answers, where c is the cost of a wrong answer, and scored once on the 2,388 test questions. Full report: `runs/tiered-se-steering/report.md`.
+One threshold applies either no dose or a single dose. A tiered schedule uses up to three SE thresholds, each with a larger dose, so a small dose can leave a borderline answer unchanged. A second trigger reads the circuit itself, measuring how far heads L15.H4 and L17.H25 point along their "invented" direction in the plain pass. That readout separates invented from real questions with AUROC 0.994, so it also flags confident answers about unfamiliar entities, which semantic entropy does not separate. Schedules are chosen on calibration questions to maximize right answers minus c times wrong answers, where c is the cost of a wrong answer, and scored once on the 2,388 test questions. Full report: `runs/tiered-se-steering/report.md`.
 
 | Wrong-answer cost c | Controller (chosen on calibration) | Abstains on unknown | Abstains on known | Invented refused | Utility |
 |---|---|---|---|---|---|
@@ -112,14 +112,14 @@ One threshold either leaves a question alone or pushes the circuit at a single d
 - **c = 2:** utility +0.034 [+0.014, +0.053]. The tiered controller gives up 2.7 points [0.6, 4.7] of abstention on unknown questions and saves 9.5 points [7.8, 11.5] of false abstention. Tiers without the readout already help here (+0.019 [+0.005, +0.033] over one threshold).
 - **c = 1:** no clear utility difference (+0.008 [-0.008, +0.025]). The tiered controller abstains more on both unknown and known questions.
 
-The readout does most of its work where SE is blind. Among questions with SE below 0.2 nats, the tiered controller at c = 2 abstains on 40.6% of the unknown ones and 4.0% of the known ones; every SE-only method abstains on 7.3% of the unknown ones there. Random heads under the same schedule change nothing (utility 0.005 against 0.010 for option E alone at c = 2).
+The readout adds most where semantic entropy is uninformative. Among questions with SE below 0.2 nats, the tiered controller at c = 2 abstains on 40.6% of the unknown ones and 4.0% of the known ones; every SE-only method abstains on 7.3% of the unknown ones there. Random heads under the same schedule leave utility at the level of option E alone (0.005 against 0.010 at c = 2).
 
-The price is false abstention. Between 0.2 and 0.6 nats the controller still refuses 44% of questions the model knows, because SE does not separate right from wrong answers well in that band, and the readout separates them only weakly on real questions (AUROC 0.646).
+False abstention is the cost of this setting. Between 0.2 and 0.6 nats the controller refuses 44% of known questions, because SE does not separate right from wrong answers well in that band, and the readout separates them only weakly on real questions (AUROC 0.646).
 
 ### Limits of the circuit study
 
-- Patching at the final token shows where the model reads the signal. The route from the entity to the tail is only partly mapped.
-- Invented names differ from real ones in form as well as familiarity. Real drug names carry class suffixes such as -pril or -statin, and the pairs cannot separate the two.
+- Patching at the final token shows where the signal is read. The route from the entity to the tail is only partly mapped.
+- Invented names differ from real ones in form as well as familiarity. Real drug names contain class suffixes such as -pril or -statin, and the pairs cannot separate the two factors.
 - The steering vectors come from templated pairs and transfer to MedQA prompts in this one format; other formats need their own test.
 
 ## How it works
@@ -206,5 +206,5 @@ The GPU runs are the real end-to-end tests. The smoke run caught one bug the fak
 - One model, one prompt format, one benchmark. Free-text answers would need new calibration.
 - The certificate holds only for questions drawn the way the calibration set was, with the same mix of real and invented items, the same model revision and the same prompt.
 - MedQA is public and may be in the model's pretraining data.
-- Invented entities are easier to catch than wrong answers to real questions. Read the real-only table in the report before the pooled one.
+- Invented entities are easier to separate than wrong answers to real questions. Read the real-only table in the report before the pooled one.
 - Nothing here is medical advice or a validated clinical tool.

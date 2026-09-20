@@ -101,11 +101,11 @@ def tier_markdown(tiered: TieredResults) -> str:
     ]
     return "\n\n".join(
         [
-            "A schedule maps semantic entropy to a dose: above each threshold the circuit gets a stronger push, and "
-            "the reply is the model's own letter under that push. The circuit readout is how far the circuit heads' "
-            "outputs point along their steering directions in the plain pass. Above its threshold the dose rises to at "
-            "least the readout dose, which can catch confident answers about unfamiliar entities. Schedules are chosen "
-            "on cal_prob to maximize utility, right answers minus c times wrong answers per question, for each "
+            "A schedule maps semantic entropy to a dose. Above each threshold the circuit receives a larger dose, and "
+            "the reply is the model's own letter under that dose. The circuit readout is the projection of the circuit "
+            "heads' outputs onto their steering directions in the unsteered pass. Above its threshold the dose rises "
+            "to at least the readout dose, which can raise abstention on confident answers about unfamiliar entities. "
+            "Schedules are chosen on cal_prob to maximize utility, right answers minus c times wrong answers, for each "
             "wrong-answer cost c, and scored once on test. Unknown questions are invented entities plus real questions "
             "the model gets wrong when forced to choose; known questions are those it gets right.",
             f"The circuit readout separates invented from real questions with AUROC "

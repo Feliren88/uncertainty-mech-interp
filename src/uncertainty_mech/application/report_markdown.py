@@ -46,7 +46,7 @@ def render_markdown(results: RunResults) -> str:
         "## Test results, all questions",
         _metrics_table(results.evaluation, "all"),
         "Upper bounds in these tables treat every row as independent. Each invented entity contributes three "
-        "related questions, so the headline bound uses one unit per group instead.",
+        "related questions, so the bound stated above uses one unit per group instead.",
         "## Test results, real MedQA questions only",
         _metrics_table(results.evaluation, "real"),
         "## Test results, invented drugs and diseases only",
@@ -55,7 +55,7 @@ def render_markdown(results: RunResults) -> str:
         _matched(results),
         "## Risk ranking on the test role",
         _quality_table(results.evaluation),
-        "## Where the error signal lives",
+        "## Layer with the strongest error signal",
         _sweep(results),
         "## Threshold certification on cal_gate",
         _thresholds(results),
@@ -199,7 +199,7 @@ def _sweep(results: RunResults) -> str:
             "the model passes between layers) predicts whether the chosen answer is wrong. Grouped 5-fold "
             "cross-validation on discovery data scores every layer.",
             "![Layer sweep](figures/layer_sweep.png)",
-            f"*The error probe reads best at layer {results.layer}, with grouped 5-fold AUROC "
+            f"*The error probe is most informative at layer {results.layer}, with grouped 5-fold AUROC "
             f"{best.auroc_mean:.3f} on discovery data (chance is 0.5).*",
         ]
     )
@@ -271,7 +271,7 @@ def _steering(steering: SteeringResult) -> str:
             f"for right answers, on discovery data (norm {steering.direction_norm:.1f}; the median residual norm "
             f"there is {steering.residual_norm:.1f}). It is added at every token position of that layer on "
             f"{steering.n_items} test prompts that offer option E. Dose 1 adds the full difference of means; doses "
-            f"beyond 1 in size push further than the observed difference. Random directions have the same norm.",
+            f"beyond 1 in size exceed the observed difference. Random directions have the same norm.",
             f"Identity check ({verdict}): a zero-dose hook changed the answer log-probabilities by at most "
             f"{steering.identity_max_abs_diff:.2e}.",
             _table(

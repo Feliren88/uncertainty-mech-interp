@@ -4,7 +4,7 @@ Report on the experiments run from 18 to 19 September 2026 under `uncertainty-me
 
 ## Executive summary
 
-We tested whether a language model can be made to reply "I don't know" to health questions it would otherwise answer incorrectly. The model was Llama 3.1 8B Instruct. The questions were 10,000 MedQA exam questions and 1,500 questions about invented drugs and diseases, for which every answer is wrong. Four results were obtained.
+We tested whether a language model can be made to reply "I don't know" to health questions it would otherwise answer incorrectly. The model was Llama 3.1 8B Instruct. The questions were 10,000 MedQA exam questions and 1,500 questions about invented drugs and diseases, for which every answer is wrong.
 
 1. **A certified external gate met its target on held-out data.** A logistic probe on internal activations, calibrated and certified on separate data, answered 31.2% of 2,388 test questions and was wrong on 5.9% of those answers. Without the gate, 37.7% of answers were wrong. The one-sided 95% upper bound on the error rate of released answers was 7.5%, below the 10% target. All 297 invented-entity questions were refused.
 2. **The model's own abstention is associated with entity familiarity.** When "I don't know" was offered as option E, it was chosen for 63% of invented-entity questions and for 2% of real questions answered incorrectly. Semantic entropy was similar in the two groups (median 0.74 and 0.75 nats).
@@ -15,7 +15,7 @@ The results hold for one model, one multiple-choice format and one benchmark. Th
 
 ## 1. Introduction
 
-Large language models produce fluent answers to medical questions whether or not the answer is supported. In a health setting, an unsupported answer can cause harm, whereas "I don't know" introduces no false information. This work implements and tests the research design in `../uncertainty-mech-interp/` (RFC Version 1.3 and `protocol.md`). That design proposes to detect likely errors from internal activations and to release an answer only below a calibrated risk threshold.
+On 2,388 held-out health questions, Llama 3.1 8B Instruct answered 91.3% when the option "I don't know" was available, and 33.1% of those answers were wrong (Table 2). In a health setting a wrong answer can cause harm, whereas "I don't know" introduces no false information. This work implements and tests the research design in `../uncertainty-mech-interp/` (RFC Version 1.3 and `protocol.md`). That design proposes to detect likely errors from internal activations and to release an answer only below a calibrated risk threshold.
 
 Three research questions were addressed.
 
@@ -55,7 +55,7 @@ At the last prompt token, the output of every decoder layer (the residual stream
 
 On `cal_gate`, each of 20 fixed thresholds received a one-sided Clopper-Pearson upper bound (Clopper and Pearson, 1934) on the error rate of the answers it would release. The significance level was 0.05/20, a Bonferroni split over the threshold grid, following Learn then Test (Angelopoulos et al., 2021). Among thresholds whose bound was at most 10%, the one releasing the most answers was selected. If none passed, the gate answered nothing. The frozen gate was then applied once to the test role.
 
-The target of 10% was fixed before any model output was seen. The RFC's 5% target was judged to require more low-risk calibration questions than the first planned sample provided. A first run with 4,600 questions served as a pilot (Section 3.2). A second run used all 10,000 MedQA questions and 500 invented entities, with 30% of groups assigned to `cal_gate`. The regularization grid was also extended from 0.01 down to 0.0001, because the pilot selected the smallest value in its grid. The target, threshold grid, significance level and primary gate were not changed. The changes and their reasons are recorded in the run configuration and the design document.
+The target of 10% was fixed before any model output was seen. We judged the RFC's 5% target to require more low-risk calibration questions than the first planned sample provided. A first run with 4,600 questions served as a pilot (Section 3.2). A second run used all 10,000 MedQA questions and 500 invented entities, with 30% of groups assigned to `cal_gate`. The regularization grid was also extended from 0.01 down to 0.0001, because the pilot selected the smallest value in its grid. The target, threshold grid, significance level and primary gate were not changed. The changes and their reasons are recorded in the run configuration and the design document.
 
 ### 2.4 Experiment 2: locating the abstention circuit
 
@@ -69,7 +69,7 @@ Heads were ranked by single-head restoration. The circuit was defined as the sma
 
 ### 2.5 Experiment 3: semantic-entropy steering of the circuit
 
-For each circuit head, a steering vector was computed as the mean head output on invented prompts minus the mean on real prompts, over discovery pairs. Steering added dose × vector to each circuit head at the final token, on the prompt with option E. The reply is therefore the model's own letter.
+For each circuit head, a steering vector was computed as the mean head output on invented prompts minus the mean on real prompts, over discovery pairs. Steering added dose × vector to each circuit head at the final token, on the prompt with option E. The reply is the model's own letter.
 
 Seven conditions were compared on MedQA and invented questions from the second run:
 
@@ -89,7 +89,7 @@ A tiered schedule maps SE to a dose. Up to three increasing thresholds t1 < t2 <
 
 A second trigger uses the circuit readout. The readout is the sum, over the two circuit heads, of the projection of the head output onto the unit steering direction, measured in the unsteered pass. When the readout exceeds a threshold (the 50th, 75th, 90th or 95th percentile of calibration readouts), the dose is raised to at least a readout dose.
 
-The model was run once per dose. Any schedule was then scored exactly by taking each question's letter from the pass at its assigned dose, since prompts in a batch do not interact. For each wrong-answer cost c in {1, 2, 4}, 20,055 candidate schedules were scored on `cal_prob`. The best schedule was recorded within each of three nested families, namely one threshold, up to three thresholds, and up to three thresholds with the readout trigger. An SE wrapper was also chosen for each cost. All were scored once on the test role. The random-head control applied the chosen tiered-with-readout schedule to the random heads of Experiment 3. Differences between controllers were estimated on the same test questions, with 95% intervals from 2,000 bootstrap resamples of question groups.
+The model was run once per dose. Any schedule was then scored exactly by taking each question's letter from the pass at its assigned dose, since prompts in a batch do not interact. For each wrong-answer cost c in {1, 2, 4}, 20,055 candidate schedules were scored on `cal_prob`. The best schedule was recorded within each of three nested families. The families were one threshold, up to three thresholds, and up to three thresholds with the readout trigger. An SE wrapper was also chosen for each cost. All were scored once on the test role. The random-head control applied the chosen tiered-with-readout schedule to the random heads of Experiment 3. Differences between controllers were estimated on the same test questions, with 95% intervals from 2,000 bootstrap resamples of question groups.
 
 ### 2.7 Software and verification
 
@@ -109,7 +109,7 @@ Twelve end-to-end tests run every command on fake models. One fake is a four-lay
 | Real, answered incorrectly | 2,887 | 0.75 | 2% |
 | Invented entity | 1,500 | 0.74 | 63% |
 
-MedQA accuracy under forced choice was 71.1% on the test role. SE separated correct from incorrect real answers. The choice of option E did not separate them, since it occurred almost only for invented entities. Offering option E changed little on real questions. It was chosen for 1.3% of real test questions, and 29.4% of the remaining answers were wrong.
+MedQA accuracy under forced choice was 71.1% on the test role. SE separated correct from incorrect real answers. The choice of option E did not separate them; it occurred on 63% of invented-entity questions and on 2% of incorrect real answers. Offering option E changed little on real questions. It was chosen for 1.3% of real test questions, and 29.4% of the remaining answers were wrong.
 
 ### 3.2 Experiment 1: certified external gate
 
@@ -117,7 +117,7 @@ MedQA accuracy under forced choice was 71.1% on the test role. SE separated corr
 
 **Second run.** With 11,500 questions, `cal_gate` contained 3,148 independent questions. The probe was most informative at layer 19 (discovery AUROC 0.830, rising from 0.70 at layer 0 and flat above layer 18). All three gates were certified at threshold 0.15.
 
-**Table 2.** Test results of the second run (2,388 questions: 2,091 MedQA, 297 invented). Upper bounds treat every question as independent.
+**Table 2.** Test results of the second run (2,388 questions, of which 2,091 MedQA and 297 invented). Upper bounds treat every question as independent.
 
 | Method | Answered | Wrong among answered | 95% upper bound | Right answers kept | Invented refused |
 |---|---|---|---|---|---|
@@ -129,7 +129,7 @@ MedQA accuracy under forced choice was 71.1% on the test role. SE separated corr
 
 \* All answers released by the combined gate are MedQA questions, each forming its own group, so this bound also holds on the 2,190 independent test units.
 
-On real questions only, the activation probe did not rank errors better than output statistics. Test AUROC was 0.781 for the probe, 0.783 for the combined model and 0.796 for output statistics. Pooled over real and invented questions, the activation-based models ranked errors better (AUROC 0.853 and 0.854 against 0.825). The pooled advantage therefore comes from the ranking of invented against real questions; both activation-based gates refused all 297 invented questions. After the run, the calibration table showed that threshold 0.07 would also have met a 5% target (588 of 3,148 calibration questions answered, 14 wrong, bound 4.7%). This was not tested on the test role.
+On real questions only, the activation probe did not rank errors better than output statistics. Test AUROC was 0.781 for the probe, 0.783 for the combined model and 0.796 for output statistics. Pooled over real and invented questions, the activation-based models ranked errors better (AUROC 0.853 and 0.854 against 0.825). The pooled advantage comes from the ranking of invented against real questions; both activation-based gates refused all 297 invented questions. After the run, the calibration table showed that threshold 0.07 would also have met a 5% target (588 of 3,148 calibration questions answered, 14 wrong, bound 4.7%). This was not tested on the test role.
 
 ![Gate risk-coverage](figures/gate-risk-coverage.png)
 
@@ -153,7 +153,7 @@ On real questions only, the activation probe did not rank errors better than out
 
 *Figure 3. Share of the abstention gap moved by copying one attention head's output at the final token (126 discovery pairs). Effects are confined to layers 13 to 31; L15.H4 and L17.H25 are the two largest positive effects and L30.H25 the largest negative effect.*
 
-**Circuit size.** Joint patches of the top-ranked heads moved 32.0% (k = 1), 52.1% (k = 2), 73.3% (k = 4), 91.6% (k = 8) and 99.2% (k = 32) of the gap on discovery pairs. The circuit was therefore the two heads L15.H4 and L17.H25.
+**Circuit size.** Joint patches of the top-ranked heads moved 32.0% (k = 1), 52.1% (k = 2), 73.3% (k = 4), 91.6% (k = 8) and 99.2% (k = 32) of the gap on discovery pairs. The circuit is the two heads L15.H4 and L17.H25.
 
 **Table 3.** Circuit validation on 99 held-out pairs.
 
@@ -178,7 +178,7 @@ The circuit patch moved half of the gap in the sufficiency direction but did not
 | Random heads, same gate | 91.3% | 33.0% | 98.2% | 60.9% | 0.310 |
 | Random vectors at circuit heads, same gate | 90.2% | 32.7% | 97.5% | 64.3% | 0.312 |
 
-Circuit steering increased abstention; both controls left the results at the level of option E alone. Among real questions above the gate, steering at dose 1 changed 60.1% of the incorrect answers (n = 531) and 46.1% of the correct answers (n = 646) into E. On calibration questions, at doses of 4 and above every gated answer became E, and the result equalled the SE wrapper at the same threshold. As a function of coverage, SE-gated steering and the SE wrapper had nearly identical error rates.
+Circuit steering increased abstention; both controls left the results at the level of option E alone. Among real questions above the gate, steering at dose 1 changed 60.1% of the incorrect answers (n = 531) and 46.1% of the correct answers (n = 646) into E. On calibration questions, at doses of 4 and above every gated answer became E, and the result equalled the SE wrapper at the same threshold. At the operating points chosen on calibration data, the two differed by 2.3 points of coverage and 0.6 points of error (Table 4).
 
 ### 3.5 Experiment 4: tiered steering with a circuit readout
 
@@ -223,17 +223,17 @@ By SE band at c = 2, the tiered controller with the readout abstained on 40.6% o
 
 **Location of the signal.** The residual-stream results follow the pattern reported for factual recall by causal tracing (Meng et al., 2022). The relevant state is located at the entity token in early layers (up to 28% at layers 0 to 6) and at the final token from the middle layers (91% at layer 15). It is also present in the instruction tail (47% at layer 14). Final-token patching was used here, so the route from the entity to the tail was not traced head by head. The negative head L30.H25 resembles the negative heads described in circuit analyses of GPT-2 small (Wang et al., 2023). Its function was not tested further.
 
-**External gate and internal steering.** The certified gate of Experiment 1 gave the lowest error among answered questions (5.9%), at 31.2% coverage and with a held-out bound. Circuit steering in Experiments 3 and 4 operated at higher coverage (58% to 62% at c = 1) and higher error (18% to 21%). The two approaches optimize different objectives, a certified risk bound and an expected utility, and are not directly comparable. The advantage of steering is that the model's own output becomes "I don't know". With one threshold, steering gave no gain over applying the same threshold outside the model. A gain appeared with graded doses and with the readout trigger, and only at wrong-answer costs of 2 and 4. At dose 1, incorrect answers were changed to E more often than correct ones (60.1% against 46.1%). The probability of a change to E therefore depended partly on whether the unsteered answer was correct.
+**External gate and internal steering.** The certified gate of Experiment 1 gave the lowest error among answered questions (5.9%), at 31.2% coverage and with a held-out bound. Circuit steering in Experiments 3 and 4 operated at higher coverage (58% to 62% at c = 1) and higher error (18% to 21%). The two approaches optimize different objectives, a certified risk bound and an expected utility, and are not directly comparable. The advantage of steering is that the model's own output becomes "I don't know". With one threshold, steering gave no gain over applying the same threshold outside the model. A gain appeared with graded doses and with the readout trigger, and only at wrong-answer costs of 2 and 4. At dose 1, incorrect answers were changed to E more often than correct ones (60.1% against 46.1%). The probability of a change to E depended partly on whether the unsteered answer was correct.
 
 **Calibration sample size.** The pilot showed that 427 calibration units could not certify 10% with a Bonferroni correction over 20 thresholds, even though the low-risk region had an observed error of 2.6% (1 of 39). With 3,148 units, the 10% target was met and a 5% target appeared reachable. This agrees with the RFC's estimate that at least 117 error-free accepted cases are required for a 5% bound.
 
 **Limitations.**
 
 - One model, one multiple-choice prompt format and one benchmark were used. Free-text answers would require new calibration and a semantic clustering step for SE.
-- The second run was designed after the pilot and shares questions with it. It is therefore classed as a larger test run; a confirmatory study would require fresh questions.
+- The second run was designed after the pilot and shares questions with it. It is classed as a larger test run; a confirmatory study would require fresh questions.
 - Invented names differ from real names in familiarity and in form (real drug names contain class suffixes). The pairs cannot separate the two factors.
 - Steering vectors were derived from templated pairs and applied to MedQA prompts. The transfer was measured for this format only.
-- In Experiment 4, 20,055 schedules were compared on 1,202 calibration questions. Calibration utilities are therefore optimistic. Test results are held out and are reported with intervals.
+- In Experiment 4, 20,055 schedules were compared on 1,202 calibration questions. Calibration utilities are optimistic. Test results are held out and are reported with intervals.
 - MedQA is public and may be present in pretraining data.
 - Gemma 2 was replaced by Llama 3.1 8B, so the RFC's Gemma Scope dictionaries were not used. Sparse-autoencoder analysis, path patching and TruthfulQA transfer were out of scope.
 
@@ -245,10 +245,10 @@ By SE band at c = 2, the tiered controller with the readout abstained on 40.6% o
 
 Recommended next steps:
 
-1. trace the route from the entity to the final token head by head in layers 11 to 16 (path patching);
-2. test whether ablating the negative head L30.H25 increases abstention;
-3. apply tiered steering to free-text generation, with SE computed from sampled answers;
-4. repeat the study on a second model and on fresh questions as a confirmatory run.
+1. Trace the route from the entity to the final token head by head in layers 11 to 16 (path patching).
+2. Test whether ablating the negative head L30.H25 increases abstention.
+3. Apply tiered steering to free-text generation, with SE computed from sampled answers.
+4. Repeat the study on a second model and on fresh questions as a confirmatory run.
 
 ## References
 
@@ -281,9 +281,9 @@ Two complete runs of the circuit study produced identical tables.
 
 | Directory under `runs/` | Contents |
 |---|---|
-| `health-llama31-8b-test-run` | Experiment 1 pilot: report, metrics, threshold checks, readings |
-| `health-llama31-8b-full-run` | Experiment 1 second run: report, frozen gate, metrics, test predictions, readings (5.8 GB) |
-| `circuit-se-steering` | Experiments 2 to 4: patching tables, circuit, validation, steering tables, steering vectors, figures |
+| `health-llama31-8b-test-run` | Experiment 1 pilot. Report, metrics, threshold checks and readings |
+| `health-llama31-8b-full-run` | Experiment 1 second run. Report, frozen gate, metrics, test predictions and readings (5.8 GB) |
+| `circuit-se-steering` | Experiments 2 to 4. Patching tables, circuit, validation, steering tables, steering vectors and figures |
 | `tiered-se-steering` | Experiment 4 with bootstrap intervals and per-question predictions |
 
 Design documents are in `docs/specs/` and implementation plans in `docs/plans/`.
