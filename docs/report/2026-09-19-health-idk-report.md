@@ -201,7 +201,7 @@ The circuit readout separated invented from real test questions with AUROC 0.994
 
 At c = 4, the tiered search selected a single threshold, so "tiered" equals "one threshold" in that row. The random-head control stayed at the level of option E alone for every cost (utility 0.308, 0.005 and -0.597 for c = 1, 2 and 4).
 
-**Table 6.** Paired differences between controllers on the test role, with 95% group-bootstrap intervals. Abstention differences are in percentage points.
+**Table 6.** Paired differences between controllers on the test role, with 95% group-bootstrap intervals from `runs/tiered-se-steering`. Abstention differences are in percentage points. The circuit study reports the same point estimates with its own bootstrap draws, which shift the interval ends by up to 0.001 in utility.
 
 | Cost c | Comparison | Utility | Abstains on unknown | Abstains on known |
 |---|---|---|---|---|
