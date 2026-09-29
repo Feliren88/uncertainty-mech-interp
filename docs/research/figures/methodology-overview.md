@@ -2,9 +2,11 @@
 
 The figure follows the completed study from acquiring questions and a model checkpoint to evaluating an external filter and an intervention inside the model. It replaces the overview chart in the [research README](../README.md#methodology).
 
-The README now uses an [editable TikZ recreation](f00_methodology_overview_tikz.tex) of the six-panel illustration. Its [PDF](f00_methodology_overview_tikz.pdf) contains vector text, lines and shapes, and its [PNG](f00_methodology_overview_tikz.png) is rendered from that PDF at 300 dpi. The complete LaTeX document can be copied into a file and compiled with `pdflatex f00_methodology_overview_tikz.tex`; it does not embed the old raster image.
+The README uses a [TikZ document](f00_methodology_overview_tikz.tex) that places the original six-panel artwork at its native aspect ratio. Its [PDF](f00_methodology_overview_tikz.pdf) embeds the original image pixels unchanged. The [README PNG](f00_methodology_overview_tikz.png) is rendered from that PDF at 300 dpi; this resampling does not add detail to the original artwork. To copy and compile the TikZ document, keep [`f00_methodology_overview.png`](f00_methodology_overview.png) beside the `.tex` file and run `pdflatex f00_methodology_overview_tikz.tex` twice.
 
-The [original PNG](f00_methodology_overview.png) remains available as the design reference and imagegen output. Its [original PDF](f00_methodology_overview.pdf) embeds that 1,024 × 1,536 pixel image. The original PDF is 6.9 × 10.35 inches, so its effective image resolution is about 148 pixels per inch.
+The [fully editable TikZ redraw](f00_methodology_overview_editable_redraw.tex) and its [vector PDF](f00_methodology_overview_editable_redraw.pdf) remain available for changing individual labels and shapes. That redraw simplifies the original illustrations and is **not visually identical**; it is not the image displayed in the README.
+
+The [original PNG](f00_methodology_overview.png) is 1,024 × 1,536 pixels. Its [original PDF](f00_methodology_overview.pdf) is 6.9 × 10.35 inches, so the effective image resolution is about 148 pixels per inch.
 
 ## Scientific content
 
@@ -51,11 +53,11 @@ The prompts can be used again with imagegen. Generated images can vary between r
 
 The visual review checked the two experimental branches, the matched-pair comparison, the direction of activation transfer, the invented-minus-real subtraction, the separate entropy and readout passes, the option-E prompt during steering, the two head names and the fixed-weight model. It also checked the distinction between probability spread and vector projection.
 
-The numerical review compared the figure's labels with saved run tables, including the full-pool and test counts, filter metrics, patch restoration, direction-specific SE change, utility differences and confidence intervals. The original raster PNG and its PDF wrapper were checked for matching pixels. The TikZ PDF was checked for embedded images and rendered to the README PNG at 300 dpi. The README's asset links were checked on disk.
+The numerical review compared the figure's labels with saved run tables, including the full-pool and test counts, filter metrics, patch restoration, direction-specific SE change, utility differences and confidence intervals. The image extracted from the faithful TikZ PDF was checked pixel for pixel against the original PNG. The README PNG was rendered from that PDF and visually checked against the original. The README's asset links were checked on disk.
 
 ## LaTeX inclusion
 
-Use the TikZ PDF as a full-page methods figure, or copy the standalone [TikZ source](f00_methodology_overview_tikz.tex) into a LaTeX project and edit its objects directly.
+Use the faithful PDF as a full-page methods figure. The [TikZ source](f00_methodology_overview_tikz.tex) can be copied into a LaTeX project along with the [original PNG](f00_methodology_overview.png). Its image node preserves the artwork's appearance; the separate [redraw source](f00_methodology_overview_editable_redraw.tex) is available when individual objects need editing.
 
 ```latex
 \begin{figure*}[p]
