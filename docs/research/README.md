@@ -20,7 +20,7 @@ All numbers come from saved result tables under `runs/`. Every figure is rendere
 
 ## Objective
 
-A language model that answers a health question incorrectly can cause harm, whereas the reply "I don't know" introduces no false information. On 2,388 held-out MedQA and invented-entity questions, Llama 3.1 8B Instruct answered 91.3% when "I don't know" was offered as an option, and 33.0% of those answers were wrong. The study asks whether the model can be made to abstain on the questions it would answer incorrectly, while still answering the questions it knows.
+A language model that answers a health question incorrectly can cause harm, whereas the reply "I don't know" introduces no false information. On 2,388 held-out [MedQA](https://huggingface.co/datasets/GBaker/MedQA-USMLE-4-options) and invented-entity questions, [Llama 3.1 8B Instruct](https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct) answered 91.3% when "I don't know" was offered as an option, and 33.0% of those answers were wrong. The study asks whether the model can be made to abstain on the questions it would answer incorrectly, while still answering the questions it knows.
 
 Three research questions were posed.
 
@@ -30,7 +30,7 @@ Three research questions were posed.
 | RQ2 | Which internal components produce the model's own "I don't know" response, and how are they related to semantic entropy? | 2 |
 | RQ3 | Can semantic entropy be used to activate those components, so that the model itself abstains on questions it does not know? Do several thresholds improve on one? | 3 and 4 |
 
-The study implements and tests the research design in `../uncertainty-mech-interp/` (RFC Version 1.3 and `protocol.md`). Deviations from that design are listed in [Limitations](#limitations).
+The study implements and tests the research design in `../uncertainty-mech-interp/` (RFC Version 1.3 and `protocol.md`). That design document is not included in this repository. Deviations from that design are listed in [Limitations](#limitations).
 
 ## Summary of results
 
@@ -49,7 +49,7 @@ Terms are listed in the order in which the methodology uses them.
 | Abstention | A reply of "I don't know" in place of an answer. In selective prediction the model may decline to predict on inputs where it is likely to be wrong. | [Geifman and El-Yaniv, 2017](https://arxiv.org/abs/1705.08500) |
 | Coverage | The share of questions the system answers. | [Geifman and El-Yaniv, 2017](https://arxiv.org/abs/1705.08500) |
 | Selective risk | The error rate among answered questions ("wrong among answered" in this document). | [Geifman and El-Yaniv, 2017](https://arxiv.org/abs/1705.08500) |
-| MedQA | A benchmark of multiple-choice questions from the United States Medical Licensing Examination (USMLE). This study uses the four-option version. | [Jin et al., 2021](https://arxiv.org/abs/2009.13081) |
+| MedQA | A benchmark of multiple-choice questions from the [United States Medical Licensing Examination (USMLE)](https://www.usmle.org). This study uses the four-option English version distributed as [GBaker/MedQA-USMLE-4-options](https://huggingface.co/datasets/GBaker/MedQA-USMLE-4-options) on the Hugging Face Hub. | [Jin et al., 2021](https://arxiv.org/abs/2009.13081); [original data](https://github.com/jind11/MedQA) |
 | Invented entity | A drug or disease name generated from syllables that does not exist. Every substantive answer to a question about it is counted as wrong. A similar "fake question" test appears in Med-HALT. | [Pal et al., 2023](https://arxiv.org/abs/2307.15343) |
 | Forced choice | The prompt with options A to D only. The answer is the letter with the highest next-token probability. | This study |
 | Option E | The prompt variant that adds "E. I don't know". Choosing E is the model's own abstention. | This study |
@@ -57,7 +57,7 @@ Terms are listed in the order in which the methodology uses them.
 | Nat | The unit of entropy computed with the natural logarithm. | [Cover and Thomas, 2006](https://doi.org/10.1002/047174882X) |
 | Residual stream | The vector at each token position that every transformer layer reads from and adds its output to. The output of decoder layer i is the residual stream after that layer. | [Elhage et al., 2021](https://transformer-circuits.pub/2021/framework/index.html) |
 | Forward hook | A PyTorch callback that reads or edits a module's output during the forward pass. Used here to capture and patch activations. | [PyTorch documentation](https://docs.pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module.register_forward_hook) |
-| Linear probe | A logistic regression trained on internal activations to predict a property, here whether the chosen answer is wrong. | [Alain and Bengio, 2016](https://arxiv.org/abs/1610.01644); [Belinkov, 2022](https://doi.org/10.1162/coli_a_00422) |
+| Linear probe | A [logistic regression](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html) trained on internal activations to predict a property, here whether the chosen answer is wrong. | [Alain and Bengio, 2016](https://arxiv.org/abs/1610.01644); [Belinkov, 2022](https://doi.org/10.1162/coli_a_00422) |
 | AUROC | Area under the receiver operating characteristic curve. The probability that a randomly chosen positive case (for example a wrong answer) receives a higher score than a randomly chosen negative case. 0.5 is chance and 1.0 is perfect ranking. | [Fawcett, 2006](https://doi.org/10.1016/j.patrec.2005.10.010) |
 | Temperature scaling | Dividing a model's logits by one fitted constant so that predicted probabilities match observed frequencies. | [Guo et al., 2017](https://arxiv.org/abs/1706.04599) |
 | Clopper-Pearson bound | An exact confidence bound for a binomial proportion. Here it is the one-sided upper bound on the error rate among released answers. | [Clopper and Pearson, 1934](https://doi.org/10.1093/biomet/26.4.404) |
@@ -65,6 +65,8 @@ Terms are listed in the order in which the methodology uses them.
 | Learn then Test (LTT) | A procedure that certifies which thresholds control a risk at a stated level by treating each threshold as a hypothesis test. | [Angelopoulos et al., 2021](https://arxiv.org/abs/2110.01052) |
 | Activation patching | Copying an activation from a run on one prompt (source) into a run on another prompt (target) and measuring the change in output. A large change shows that the patched component carries the information that distinguishes the prompts. | [Meng et al., 2022](https://arxiv.org/abs/2202.05262); [Zhang and Nanda, 2024](https://arxiv.org/abs/2309.16042); [Heimersheim and Nanda, 2024](https://arxiv.org/abs/2404.15255) |
 | Attention head L*x*.H*y* | Head *y* of the attention layer in decoder layer *x*, counted from 0. Its output is its slice of the input to the attention output projection. | [Elhage et al., 2021](https://transformer-circuits.pub/2021/framework/index.html) |
+| MLP | The position-wise feed-forward sublayer in each transformer block. Its output at the final token is patched in Experiment 2. | [Vaswani et al., 2017](https://arxiv.org/abs/1706.03762) |
+| Sparse autoencoder (SAE) | A network trained to rewrite activations as a sparse combination of learned features. Named in the RFC; not used here. | [Cunningham et al., 2023](https://arxiv.org/abs/2309.08600); [Bricken et al., 2023](https://transformer-circuits.pub/2023/monosemantic-features) |
 | Circuit | A small set of model components that together implement a measurable behaviour, validated by patching against random components. | [Wang et al., 2023](https://arxiv.org/abs/2211.00593) |
 | Abstention gap | ln P(E) - ln P(A or B or C or D) on the option E prompt. Positive values mean that "I don't know" is preferred. | This study |
 | Restoration | R = (patched metric - target metric) / (source metric - target metric), averaged over pairs. R = 1 means the patched target behaves like the source. | [Wang et al., 2023](https://arxiv.org/abs/2211.00593) |
@@ -100,13 +102,13 @@ flowchart TD
 
 ### Model, prompts and data
 
-**Model.** Llama 3.1 8B Instruct ([Grattafiori et al., 2024](https://arxiv.org/abs/2407.21783)), revision `0e9e39f2`, in bfloat16 on one NVIDIA A100 80 GB GPU. The RFC specified Gemma 2 2B, but access to that checkpoint was refused (HTTP 403).
+**Model.** [Llama 3.1 8B Instruct](https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct) ([Grattafiori et al., 2024](https://arxiv.org/abs/2407.21783)), revision [`0e9e39f2`](https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct/tree/0e9e39f249a16976918f6564b8830bc894c89659), in [bfloat16](https://cloud.google.com/tpu/docs/bfloat16) on one [NVIDIA A100 80 GB](https://www.nvidia.com/en-us/data-center/a100/) GPU. The RFC specified [Gemma 2 2B](https://huggingface.co/google/gemma-2-2b) ([Gemma Team, 2024](https://arxiv.org/abs/2408.00118)), but access to that checkpoint was refused ([HTTP 403](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/403)) because its licence had not been accepted on the account used.
 
-**Answer readout.** Every question had four options, A to D. The answer was read from one forward pass as the next-token probabilities of the letters A to D after the chat template. This makes grading exact and removes the need for a judge model.
+**Answer readout.** Every question had four options, A to D. The answer was read from one forward pass as the next-token probabilities of the letters A to D after the model's [chat template](https://huggingface.co/docs/transformers/chat_templating). This makes grading exact and removes the need for a judge model.
 
-**Real questions.** MedQA-USMLE four-option questions, training file at a pinned revision, deduplicated by normalized text to 10,176 unique questions and sampled with seed 17.
+**Real questions.** MedQA-USMLE four-option questions ([Jin et al., 2021](https://arxiv.org/abs/2009.13081)) from the training file of [GBaker/MedQA-USMLE-4-options](https://huggingface.co/datasets/GBaker/MedQA-USMLE-4-options) at revision [`0fb93dd2`](https://huggingface.co/datasets/GBaker/MedQA-USMLE-4-options/tree/0fb93dd23a7339b6dcd27e241cb9b5eca62d4d18), deduplicated by normalized text to 10,176 unique questions and sampled with seed 17.
 
-**Invented questions.** Drug and disease names were generated from syllables. Names containing real drug-class stems (for example -pril, -statin, -mab) or any word in the MedQA text were rejected. Each invented entity received three clinical questions, for example "A 64-year-old woman is started on Velquarin. What is the usual adult starting dose of this drug?". The options are real drugs, genes, organisms, enzymes or doses.
+**Invented questions.** Drug and disease names were generated from syllables. Names containing real drug-class stems from the [USAN approved stem list](https://www.ama-assn.org/about/united-states-adopted-names/united-states-adopted-names-approved-stems) (for example -pril, -statin, -mab) or any word in the MedQA text were rejected. Each invented entity received three clinical questions, for example "A 64-year-old woman is started on Velquarin. What is the usual adult starting dose of this drug?". The options are real drugs, genes, organisms, enzymes or doses.
 
 **Matched pairs (Experiments 2 to 4).** 75 well-established facts were written in fixed templates, for example the mechanism of atorvastatin. Each fact was paired with three invented names in an otherwise identical prompt with the same options in the same order, giving 225 pairs. The model answered all 225 real questions correctly under forced choice.
 
@@ -128,7 +130,7 @@ For binomial bounds, one canonical question per group was used, chosen before an
 
 ### Experiment 1: certified external gate
 
-At the last prompt token, the residual stream of every decoder layer was captured with forward hooks. On discovery data, grouped 5-fold cross-validation selected the probe layer and the regularization strength of a logistic probe predicting a wrong answer. Three risk models were compared. The first used output statistics (top probability, top-two margin, SE and total probability on the letters), the second used the activation probe, and the third combined both. The combined model was fixed in advance as the primary gate.
+At the last prompt token, the residual stream of every decoder layer was captured with forward hooks. On discovery data, [grouped 5-fold cross-validation](https://scikit-learn.org/stable/modules/cross_validation.html) selected the probe layer and the regularization strength of a logistic probe predicting a wrong answer. Three risk models were compared. The first used output statistics (top probability, top-two margin, SE and total probability on the letters), the second used the activation probe, and the third combined both. The combined model was fixed in advance as the primary gate.
 
 ```mermaid
 flowchart TD
@@ -201,13 +203,13 @@ Thresholds t1 < t2 < t3 were drawn from 0.2 to 1.2 nats and non-decreasing doses
 | Layer | Tools | Role |
 |---|---|---|
 | Model | [Llama 3.1 8B Instruct](https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct), bfloat16 | Subject of the study |
-| Inference and hooks | [PyTorch](https://pytorch.org) 2.12, [Hugging Face Transformers](https://github.com/huggingface/transformers) 4.57, Accelerate | Forward passes, activation capture, patching and steering through forward hooks |
-| Data | [MedQA](https://github.com/jind11/MedQA) via the Hugging Face Hub at a pinned revision; generated invented entities | Questions |
-| Statistics | [scikit-learn](https://scikit-learn.org) 1.8, NumPy, SciPy | Logistic probes, AUROC, Clopper-Pearson bounds, bootstrap |
-| Figures | Matplotlib, pandas | Figures rendered from saved result tables |
+| Inference and hooks | [PyTorch](https://pytorch.org) 2.12, [Hugging Face Transformers](https://github.com/huggingface/transformers) 4.57, [Accelerate](https://github.com/huggingface/accelerate) | Forward passes, activation capture, patching and steering through forward hooks |
+| Data | [MedQA](https://huggingface.co/datasets/GBaker/MedQA-USMLE-4-options) via the [Hugging Face Hub](https://huggingface.co/docs/hub) at a pinned revision ([original release](https://github.com/jind11/MedQA)); invented entities generated by `src/uncertainty_mech/infrastructure/fictional.py`; matched facts in `src/uncertainty_mech/infrastructure/known_facts.py` | Questions |
+| Statistics | [scikit-learn](https://scikit-learn.org) 1.8, [NumPy](https://numpy.org), [SciPy](https://scipy.org) | Logistic probes, AUROC, Clopper-Pearson bounds, bootstrap |
+| Figures and diagrams | [Matplotlib](https://matplotlib.org), [pandas](https://pandas.pydata.org), [Mermaid](https://mermaid.js.org) ([rendered by GitHub](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/creating-diagrams)) | Figures rendered from saved result tables; methodology diagrams |
 | Mechanistic interpretability conventions | [ARENA 3.0](https://github.com/callummcdougall/ARENA_3.0), chapter 1 | Hook placement, probe and steering conventions |
-| Testing | pytest, ruff | 12 end-to-end tests on fake models; one fake has a planted abstention head |
-| Compute | One NVIDIA A100 80 GB on a SLURM cluster | About 2 hours of GPU time for all runs |
+| Testing | [pytest](https://docs.pytest.org), [ruff](https://docs.astral.sh/ruff/) | 12 end-to-end tests on fake models; one fake has a planted abstention head |
+| Compute | One [NVIDIA A100 80 GB](https://www.nvidia.com/en-us/data-center/a100/) on a [Slurm](https://slurm.schedmd.com) cluster | About 2 hours of GPU time for all runs |
 
 The code follows a layered design. The `domain` layer holds questions, splits, prompts, metrics, the certificate and the dose schedule, and has no model or file dependencies. The `application` layer holds the use cases and the interfaces they call. The `infrastructure` layer holds the Hugging Face model adapter with hooks, the data sources, the file store and the figure code. Only the model adapter imports PyTorch.
 
@@ -349,8 +351,8 @@ On the matched pairs, the real prompts never led to option E (mean abstention ga
 - Invented names differ from real names in familiarity and in form (real drug names carry class suffixes such as -pril). The matched pairs cannot separate the two factors.
 - Steering vectors were derived from templated pairs and applied to MedQA prompts. Transfer was measured for this format only.
 - In Experiment 4, 20,055 schedules were compared on 1,202 calibration questions, so calibration utilities are optimistic. Test results are held out and reported with intervals.
-- MedQA is public and may be present in the model's pretraining data.
-- Deviations from the RFC: Llama 3.1 8B replaced Gemma 2 2B; MedQA and invented entities replaced SQuAD 2.0, TriviaQA and synthetic worlds; the risk target was 10% instead of 5%; sparse-autoencoder features, path patching and TruthfulQA transfer were not run.
+- [MedQA](https://huggingface.co/datasets/GBaker/MedQA-USMLE-4-options) is public and may be present in the model's pretraining data.
+- The study deviates from the RFC in four ways. Llama 3.1 8B replaced [Gemma 2 2B](https://huggingface.co/google/gemma-2-2b). MedQA and invented entities replaced [SQuAD 2.0](https://rajpurkar.github.io/SQuAD-explorer/) ([Rajpurkar et al., 2018](https://arxiv.org/abs/1806.03822)), [TriviaQA](https://arxiv.org/abs/1705.03551) ([Joshi et al., 2017](https://arxiv.org/abs/1705.03551)) and synthetic worlds. The risk target was 10% instead of 5%. Sparse-autoencoder features from [Gemma Scope](https://arxiv.org/abs/2408.05147) ([Lieberum et al., 2024](https://arxiv.org/abs/2408.05147)), path patching and transfer to [TruthfulQA](https://arxiv.org/abs/2109.07958) ([Lin et al., 2022](https://arxiv.org/abs/2109.07958)) were not run.
 
 ## Next steps
 
@@ -361,11 +363,11 @@ On the matched pairs, the real prompts never led to option E (mean abstention ga
 | 3 | Freeze threshold 0.07 and score it on fresh MedQA questions | Can the gate certify a 5% target? The calibration data met 5% at 0.07 (588 answered, 14 wrong, bound 4.7%), but this was not tested on held-out data | Requires questions outside the 10,176 used |
 | 4 | Path patching in layers 11 to 16 ([Goldowsky-Dill et al., 2023](https://arxiv.org/abs/2304.05969)) | Which heads move entity information into the instruction tail? | Moderate code change |
 | 5 | Free-text answers with sampled SE | Does tiered steering improve on an external wrapper when SE is costly to compute? | Largest change; needs a judge for grading |
-| 6 | A second model and fresh questions | Confirmatory replication of the circuit and the controller results | Gemma 2 requires the licence to be accepted on the Hugging Face account |
+| 6 | A second model and fresh questions | Confirmatory replication of the circuit and the controller results | [Gemma 2](https://huggingface.co/google/gemma-2-2b) requires the licence to be accepted on the Hugging Face account |
 
 ## Reproduction
 
-Run from the repository root with `HF_HOME` pointing to a Hugging Face cache that holds the model, and `PYTHONPATH=src`. Times are for one A100 80 GB.
+Run from the repository root with [`HF_HOME`](https://huggingface.co/docs/huggingface_hub/guides/manage-cache) pointing to a Hugging Face cache that holds [the model](https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct), and `PYTHONPATH=src`. Times are for one A100 80 GB.
 
 | Step | Command | Time |
 |---|---|---|
@@ -383,29 +385,37 @@ Run outputs are written to `runs/`, which is not tracked because the saved activ
 - Alain, G., and Bengio, Y. (2016). Understanding intermediate layers using linear classifier probes. [arXiv:1610.01644](https://arxiv.org/abs/1610.01644).
 - Angelopoulos, A. N., Bates, S., Candès, E. J., Jordan, M. I., and Lei, L. (2021). Learn then Test: calibrating predictive algorithms to achieve risk control. [arXiv:2110.01052](https://arxiv.org/abs/2110.01052).
 - Belinkov, Y. (2022). Probing classifiers: promises, shortcomings, and advances. Computational Linguistics, 48(1), 207-219. [doi:10.1162/coli_a_00422](https://doi.org/10.1162/coli_a_00422).
+- Bricken, T., et al. (2023). Towards monosemanticity: decomposing language models with dictionary learning. [Transformer Circuits Thread](https://transformer-circuits.pub/2023/monosemantic-features).
 - Clopper, C. J., and Pearson, E. S. (1934). The use of confidence or fiducial limits illustrated in the case of the binomial. Biometrika, 26(4), 404-413. [doi:10.1093/biomet/26.4.404](https://doi.org/10.1093/biomet/26.4.404).
 - Cover, T. M., and Thomas, J. A. (2006). Elements of Information Theory, 2nd edition. Wiley. [doi:10.1002/047174882X](https://doi.org/10.1002/047174882X).
+- Cunningham, H., Ewart, A., Riggs, L., Huben, R., and Sharkey, L. (2023). Sparse autoencoders find highly interpretable features in language models. [arXiv:2309.08600](https://arxiv.org/abs/2309.08600).
 - Dunn, O. J. (1961). Multiple comparisons among means. Journal of the American Statistical Association, 56(293), 52-64. [doi:10.1080/01621459.1961.10482090](https://doi.org/10.1080/01621459.1961.10482090).
 - Efron, B. (1979). Bootstrap methods: another look at the jackknife. The Annals of Statistics, 7(1), 1-26. [doi:10.1214/aos/1176344552](https://doi.org/10.1214/aos/1176344552).
 - Elhage, N., et al. (2021). A mathematical framework for transformer circuits. [Transformer Circuits Thread](https://transformer-circuits.pub/2021/framework/index.html).
 - Farquhar, S., Kossen, J., Kuhn, L., and Gal, Y. (2024). Detecting hallucinations in large language models using semantic entropy. Nature, 630, 625-630. [doi:10.1038/s41586-024-07421-0](https://www.nature.com/articles/s41586-024-07421-0).
 - Fawcett, T. (2006). An introduction to ROC analysis. Pattern Recognition Letters, 27(8), 861-874. [doi:10.1016/j.patrec.2005.10.010](https://doi.org/10.1016/j.patrec.2005.10.010).
 - Ferrando, J., Obeso, O., Rajamanoharan, S., and Nanda, N. (2025). Do I know this entity? Knowledge awareness and hallucinations in language models. ICLR. [arXiv:2411.14257](https://arxiv.org/abs/2411.14257).
+- Gemma Team (2024). Gemma 2: improving open language models at a practical size. [arXiv:2408.00118](https://arxiv.org/abs/2408.00118).
 - Geifman, Y., and El-Yaniv, R. (2017). Selective classification for deep neural networks. NeurIPS. [arXiv:1705.08500](https://arxiv.org/abs/1705.08500).
 - Goldowsky-Dill, N., et al. (2023). Localizing model behavior with path patching. [arXiv:2304.05969](https://arxiv.org/abs/2304.05969).
 - Grattafiori, A., et al. (2024). The Llama 3 herd of models. [arXiv:2407.21783](https://arxiv.org/abs/2407.21783).
 - Guo, C., Pleiss, G., Sun, Y., and Weinberger, K. Q. (2017). On calibration of modern neural networks. ICML. [arXiv:1706.04599](https://arxiv.org/abs/1706.04599).
 - Heimersheim, S., and Nanda, N. (2024). How to use and interpret activation patching. [arXiv:2404.15255](https://arxiv.org/abs/2404.15255).
 - Jin, D., Pan, E., Oufattole, N., Weng, W.-H., Fang, H., and Szolovits, P. (2021). What disease does this patient have? A large-scale open domain question answering dataset from medical exams. Applied Sciences, 11(14), 6421. [arXiv:2009.13081](https://arxiv.org/abs/2009.13081).
+- Joshi, M., Choi, E., Weld, D. S., and Zettlemoyer, L. (2017). TriviaQA: a large scale distantly supervised challenge dataset for reading comprehension. ACL. [arXiv:1705.03551](https://arxiv.org/abs/1705.03551).
 - Kadavath, S., et al. (2022). Language models (mostly) know what they know. [arXiv:2207.05221](https://arxiv.org/abs/2207.05221).
 - Kossen, J., et al. (2024). Semantic entropy probes: robust and cheap hallucination detection in LLMs. [arXiv:2406.15927](https://arxiv.org/abs/2406.15927).
 - Kuhn, L., Gal, Y., and Farquhar, S. (2023). Semantic uncertainty: linguistic invariances for uncertainty estimation in natural language generation. ICLR. [arXiv:2302.09664](https://arxiv.org/abs/2302.09664).
+- Lieberum, T., et al. (2024). Gemma Scope: open sparse autoencoders everywhere all at once on Gemma 2. [arXiv:2408.05147](https://arxiv.org/abs/2408.05147).
 - Lindsey, J., et al. (2025). On the biology of a large language model. [Transformer Circuits Thread](https://transformer-circuits.pub/2025/attribution-graphs/biology.html).
+- Lin, S., Hilton, J., and Evans, O. (2022). TruthfulQA: measuring how models mimic human falsehoods. ACL. [arXiv:2109.07958](https://arxiv.org/abs/2109.07958).
 - Meng, K., Bau, D., Andonian, A., and Belinkov, Y. (2022). Locating and editing factual associations in GPT. NeurIPS. [arXiv:2202.05262](https://arxiv.org/abs/2202.05262).
 - Orgad, H., et al. (2025). LLMs know more than they show: on the intrinsic representation of LLM hallucinations. ICLR. [arXiv:2410.02707](https://arxiv.org/abs/2410.02707).
 - Pal, A., Umapathi, L. K., and Sankarasubbu, M. (2023). Med-HALT: medical domain hallucination test for large language models. CoNLL. [arXiv:2307.15343](https://arxiv.org/abs/2307.15343).
+- Rajpurkar, P., Jia, R., and Liang, P. (2018). Know what you don't know: unanswerable questions for SQuAD. ACL. [arXiv:1806.03822](https://arxiv.org/abs/1806.03822).
 - Rimsky, N., et al. (2024). Steering Llama 2 via contrastive activation addition. ACL. [arXiv:2312.06681](https://arxiv.org/abs/2312.06681).
 - Turner, A. M., et al. (2023). Steering language models with activation engineering. [arXiv:2308.10248](https://arxiv.org/abs/2308.10248).
+- Vaswani, A., et al. (2017). Attention is all you need. NeurIPS. [arXiv:1706.03762](https://arxiv.org/abs/1706.03762).
 - Wang, K., Variengien, A., Conmy, A., Shlegeris, B., and Steinhardt, J. (2023). Interpretability in the wild: a circuit for indirect object identification in GPT-2 small. ICLR. [arXiv:2211.00593](https://arxiv.org/abs/2211.00593).
 - Yadkori, Y. A., et al. (2024). Mitigating LLM hallucinations via conformal abstention. [arXiv:2405.01563](https://arxiv.org/abs/2405.01563).
 - Zhang, F., and Nanda, N. (2024). Towards best practices of activation patching in language models: metrics and methods. ICLR. [arXiv:2309.16042](https://arxiv.org/abs/2309.16042).
