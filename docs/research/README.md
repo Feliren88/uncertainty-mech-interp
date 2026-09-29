@@ -52,11 +52,11 @@ The experiments follow the research design in `../uncertainty-mech-interp/` (RFC
 
 ### Overview
 
-![Six illustrated panels showing data and model acquisition, grouped splits, frozen-model inference, the external error filter, activation patching, entropy-controlled steering and held-out findings](figures/f00_methodology_overview.png)
+![Six-panel TikZ illustration showing data and model acquisition, grouped splits, frozen-model inference, the external error filter, activation patching, entropy-controlled steering and held-out findings](figures/f00_methodology_overview_tikz.png)
 
 *Illustrated methodology. (a) Acquire MedQA questions, generate invented entities and keep test questions separate. (b) Load the pinned Llama checkpoint and record answer probabilities and internal activations. (c) Fit and certify an external error filter. (d) Copy activations between matched real and invented prompts to find the abstention heads. (e) Use semantic entropy and a separate circuit readout to choose how strongly to steer those heads, then let the model choose its own answer. (f) Evaluate the filter and steering separately on held-out questions. Question cards, probability bars and activation grids are schematic; the numerical findings come from saved runs. Gap restoration measures a change in log probabilities, not the fraction of answers changed to E.*
 
-[Open PNG](figures/f00_methodology_overview.png) · [Download PDF](figures/f00_methodology_overview.pdf) · [Prompts, sources and checks](figures/methodology-overview.md)
+[Open PNG](figures/f00_methodology_overview_tikz.png) · [Download vector PDF](figures/f00_methodology_overview_tikz.pdf) · [Copy-paste TikZ source](figures/f00_methodology_overview_tikz.tex) · [Sources and checks](figures/methodology-overview.md)
 
 The work followed four steps, all using the same language model:
 

@@ -2,7 +2,9 @@
 
 The figure follows the completed study from acquiring questions and a model checkpoint to evaluating an external filter and an intervention inside the model. It replaces the overview chart in the [research README](../README.md#methodology).
 
-The [PNG](f00_methodology_overview.png) is the selected imagegen output, copied without changing its pixels. The [PDF](f00_methodology_overview.pdf) embeds the same image without resampling or lossy compression. The native image is 1,024 × 1,536 pixels. The PDF is 6.9 × 10.35 inches; its effective image resolution is about 148 pixels per inch. View the PNG at full size to read the smaller labels. The PDF export does not increase the source resolution.
+The README now uses an [editable TikZ recreation](f00_methodology_overview_tikz.tex) of the six-panel illustration. Its [PDF](f00_methodology_overview_tikz.pdf) contains vector text, lines and shapes, and its [PNG](f00_methodology_overview_tikz.png) is rendered from that PDF at 300 dpi. The complete LaTeX document can be copied into a file and compiled with `pdflatex f00_methodology_overview_tikz.tex`; it does not embed the old raster image.
+
+The [original PNG](f00_methodology_overview.png) remains available as the design reference and imagegen output. Its [original PDF](f00_methodology_overview.pdf) embeds that 1,024 × 1,536 pixel image. The original PDF is 6.9 × 10.35 inches, so its effective image resolution is about 148 pixels per inch.
 
 ## Scientific content
 
@@ -32,9 +34,9 @@ Question cards, model stacks, head grids, probability bars, calibration sketches
 
 The saved `runs/` files are local experiment outputs and are excluded from version control. Their hashes and the values used in the illustration are recorded in [`methodology-overview.provenance.json`](methodology-overview.provenance.json).
 
-## Generation
+## Original raster generation
 
-The rendering used the built-in imagegen tool. The local `paperbanana` launcher failed with `ModuleNotFoundError: No module named 'paperbanana'`, so the PaperBanana CLI did not run. Planning, styling and visual review were carried out inline using the reference–plan–style–render–critique sequence described in [PaperBanana](https://github.com/dwzhu-pku/PaperBanana). The style reference was its [diagram style guide](https://github.com/dwzhu-pku/PaperBanana/blob/main/style_guides/neurips2025_diagram_style_guide.md).
+The original raster rendering used the built-in imagegen tool. The local `paperbanana` launcher failed with `ModuleNotFoundError: No module named 'paperbanana'`, so the PaperBanana CLI did not run. Planning, styling and visual review were carried out inline using the reference–plan–style–render–critique sequence described in [PaperBanana](https://github.com/dwzhu-pku/PaperBanana). The style reference was its [diagram style guide](https://github.com/dwzhu-pku/PaperBanana/blob/main/style_guides/neurips2025_diagram_style_guide.md).
 
 The stored prompts record the render and its revisions:
 
@@ -49,16 +51,16 @@ The prompts can be used again with imagegen. Generated images can vary between r
 
 The visual review checked the two experimental branches, the matched-pair comparison, the direction of activation transfer, the invented-minus-real subtraction, the separate entropy and readout passes, the option-E prompt during steering, the two head names and the fixed-weight model. It also checked the distinction between probability spread and vector projection.
 
-The numerical review compared the figure's labels with saved run tables, including the full-pool and test counts, filter metrics, patch restoration, direction-specific SE change, utility differences and confidence intervals. The PNG and PDF were checked for matching pixels, and the README's asset links were checked on disk. Resolution is reported above rather than inferred from the requested render size.
+The numerical review compared the figure's labels with saved run tables, including the full-pool and test counts, filter metrics, patch restoration, direction-specific SE change, utility differences and confidence intervals. The original raster PNG and its PDF wrapper were checked for matching pixels. The TikZ PDF was checked for embedded images and rendered to the README PNG at 300 dpi. The README's asset links were checked on disk.
 
 ## LaTeX inclusion
 
-Use the PDF as a full-page methods figure. The image is raster content inside a PDF container.
+Use the TikZ PDF as a full-page methods figure, or copy the standalone [TikZ source](f00_methodology_overview_tikz.tex) into a LaTeX project and edit its objects directly.
 
 ```latex
 \begin{figure*}[p]
   \centering
-  \includegraphics[width=\textwidth,height=0.92\textheight,keepaspectratio]{f00_methodology_overview.pdf}
+  \includegraphics[width=\textwidth,height=0.92\textheight,keepaspectratio]{f00_methodology_overview_tikz.pdf}
   \caption{Overview of the medical-question abstention study. Data acquisition and frozen-model inference feed two branches: an external error filter and a circuit intervention controlled by semantic entropy and a separate readout. Both are evaluated on held-out questions. Illustrations are schematic; numerical labels summarize saved experiments.}
   \label{fig:abstention-methodology}
 \end{figure*}
