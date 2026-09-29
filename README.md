@@ -4,6 +4,8 @@ This code lets Llama 3.1 8B Instruct answer a medical multiple-choice question o
 
 The full narrative write-up of all four experiments, with methodology, results, discussion and references, is in [docs/report/2026-09-19-health-idk-report.md](docs/report/2026-09-19-health-idk-report.md).
 
+For collaborators, a shorter research summary with diagrams of the methodology, 17 result figures and definitions of the terms used is in [docs/research/README.md](docs/research/README.md).
+
 ## Result
 
 On 2,388 held-out test questions, the gate answered 745 (31.2%), of which 44 were wrong (5.9%). Without the gate, the model answered everything and was wrong on 37.7%. The target was an error rate of at most 10% among answered questions, with 95% confidence. On the test data the one-sided 95% upper bound is 7.5%, so the held-out result agrees with the calibration certificate.

@@ -1,0 +1,87 @@
+{
+  "f01_se_by_question_type": {
+    "message": "Semantic entropy separates correct from incorrect real answers, and invented-entity questions overlap the incorrect ones",
+    "context": "Test role, 2,388 questions",
+    "path": "/fs04/scratch2/lf93/vfvic1/uncertainty-mech-interp/code/docs/research/figures/f01_se_by_question_type.png"
+  },
+  "f02_option_e_by_question_type": {
+    "message": "The model chooses option E almost only on invented-entity questions",
+    "context": "Test role",
+    "path": "/fs04/scratch2/lf93/vfvic1/uncertainty-mech-interp/code/docs/research/figures/f02_option_e_by_question_type.png"
+  },
+  "f03_probe_layer_sweep": {
+    "message": "Wrong answers become more linearly decodable between layers 12 and 18 and the curve is flat after that",
+    "context": "Discovery role, grouped 5-fold cross-validation",
+    "path": "/fs04/scratch2/lf93/vfvic1/uncertainty-mech-interp/code/docs/research/figures/f03_probe_layer_sweep.png"
+  },
+  "f04_certification_bounds": {
+    "message": "With 427 certification units no threshold met the 10% target; with 3,148 units thresholds from 0.02 to 0.15 did",
+    "context": "Clopper-Pearson bound at level 0.05/20 per threshold",
+    "path": "/fs04/scratch2/lf93/vfvic1/uncertainty-mech-interp/code/docs/research/figures/f04_certification_bounds.png"
+  },
+  "f05_risk_coverage": {
+    "message": "All three risk scores keep the error rate under 10% up to about 40% coverage, and the frozen gate sits at 31% coverage and 5.9% error",
+    "context": "Test role, 2,388 questions",
+    "path": "/fs04/scratch2/lf93/vfvic1/uncertainty-mech-interp/code/docs/research/figures/f05_risk_coverage.png"
+  },
+  "f06_auroc_by_signal": {
+    "message": "The activation advantage comes from invented questions; on real questions output statistics rank errors slightly better",
+    "context": "Test role; y-axis starts at 0.7",
+    "path": "/fs04/scratch2/lf93/vfvic1/uncertainty-mech-interp/code/docs/research/figures/f06_auroc_by_signal.png"
+  },
+  "f07_error_direction_steering": {
+    "message": "Adding the layer-19 error direction does not raise the probability of E above random directions of the same norm",
+    "context": "200 test questions, all positions steered",
+    "path": "/fs04/scratch2/lf93/vfvic1/uncertainty-mech-interp/code/docs/research/figures/f07_error_direction_steering.png"
+  },
+  "f08_residual_patching": {
+    "message": "The abstention information sits on the entity in early layers, passes through the instruction tail around layer 14 and reaches the final token from layer 15",
+    "context": "126 discovery pairs, invented into real",
+    "path": "/fs04/scratch2/lf93/vfvic1/uncertainty-mech-interp/code/docs/research/figures/f08_residual_patching.png"
+  },
+  "f09_head_patching_heatmap": {
+    "message": "Single-head effects are confined to layers 13 to 31; L15.H4 and L17.H25 are the largest positive heads and L30.H25 is strongly negative",
+    "context": "126 discovery pairs, final token, one head at a time",
+    "path": "/fs04/scratch2/lf93/vfvic1/uncertainty-mech-interp/code/docs/research/figures/f09_head_patching_heatmap.png"
+  },
+  "f10_circuit_size": {
+    "message": "Two heads are the smallest set that passes 50% restoration, so the circuit is L15.H4 and L17.H25",
+    "context": "126 discovery pairs",
+    "path": "/fs04/scratch2/lf93/vfvic1/uncertainty-mech-interp/code/docs/research/figures/f10_circuit_size.png"
+  },
+  "f11_circuit_validation": {
+    "message": "On held-out pairs the two-head circuit restores 51% and 21% of the gap while random head pairs restore about zero",
+    "context": "99 test pairs",
+    "path": "/fs04/scratch2/lf93/vfvic1/uncertainty-mech-interp/code/docs/research/figures/f11_circuit_validation.png"
+  },
+  "f12_se_steering_curves": {
+    "message": "Circuit steering at dose 1 traces the same trade-off as the external SE wrapper over the range it covers, and random heads do nothing",
+    "context": "Test role, 2,388 questions",
+    "path": "/fs04/scratch2/lf93/vfvic1/uncertainty-mech-interp/code/docs/research/figures/f12_se_steering_curves.png"
+  },
+  "f13_steering_flips": {
+    "message": "Steering changes wrong answers to E more often than right answers (60% vs 46%), so it is partly selective",
+    "context": "Real test questions above the SE gate, dose 1",
+    "path": "/fs04/scratch2/lf93/vfvic1/uncertainty-mech-interp/code/docs/research/figures/f13_steering_flips.png"
+  },
+  "f14_circuit_readout": {
+    "message": "The circuit readout separates invented from real entities almost perfectly but only weakly separates wrong from right real answers",
+    "context": "Test role, unsteered pass",
+    "path": "/fs04/scratch2/lf93/vfvic1/uncertainty-mech-interp/code/docs/research/figures/f14_circuit_readout.png"
+  },
+  "f15_tiered_tradeoff": {
+    "message": "At every cost the tiered controller with the readout sits above or left of the SE wrapper, abstaining as often on unknown questions with fewer false abstentions",
+    "context": "Test role; upper left is better",
+    "path": "/fs04/scratch2/lf93/vfvic1/uncertainty-mech-interp/code/docs/research/figures/f15_tiered_tradeoff.png"
+  },
+  "f16_paired_utility_differences": {
+    "message": "Tiered steering with the readout improves utility at wrong-answer costs 2 and 4; at cost 1 every interval includes zero",
+    "context": "Test role, 2,000 bootstrap resamples of question groups",
+    "path": "/fs04/scratch2/lf93/vfvic1/uncertainty-mech-interp/code/docs/research/figures/f16_paired_utility_differences.png"
+  },
+  "f17_abstention_by_se_band": {
+    "message": "Below 0.2 nats the readout trigger catches 41% of unknown questions, where SE-based methods catch 7%",
+    "context": "Test role, wrong-answer cost 2",
+    "path": "/fs04/scratch2/lf93/vfvic1/uncertainty-mech-interp/code/docs/research/figures/f17_abstention_by_se_band.png"
+  }
+}

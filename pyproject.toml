@@ -17,6 +17,7 @@ dependencies = [
 [project.optional-dependencies]
 model = ["torch>=2.2", "transformers>=4.56", "accelerate>=0.30", "huggingface_hub>=0.24"]
 test = ["pytest>=8"]
+figures = ["pandas>=2.0"]
 
 [project.scripts]
 uncertainty-mech = "uncertainty_mech.cli:main"
