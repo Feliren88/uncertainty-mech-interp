@@ -4,7 +4,7 @@ The study tested whether Llama could say "I don't know" on medical questions it 
 
 This summary covers the experiments run from 18 to 20 September 2026. For instructions on running the code, see the repository README ([`../../README.md`](../../README.md)). The full technical report is [`../report/2026-09-19-health-idk-report.md`](../report/2026-09-19-health-idk-report.md).
 
-All reported numbers come from saved result tables under `runs/`. The script [`scripts/research_figures.py`](../../scripts/research_figures.py) renders every figure from those tables. The results apply to one model, one multiple-choice format and one benchmark. They are not medical advice.
+All reported numbers come from saved result tables under `runs/`. The script [`scripts/research_figures.py`](../../scripts/research_figures.py) renders the result figures from those tables. The illustrated methodology overview has its own [generation brief](figures/methodology-overview.md). The results apply to one model, one multiple-choice format and one benchmark. They are not medical advice.
 
 ## Contents
 
@@ -52,27 +52,18 @@ The experiments follow the research design in `../uncertainty-mech-interp/` (RFC
 
 ### Overview
 
+![Six illustrated panels showing data and model acquisition, grouped splits, frozen-model inference, the external error filter, activation patching, entropy-controlled steering and held-out findings](figures/f00_methodology_overview.png)
+
+*Illustrated methodology. (a) Acquire MedQA questions, generate invented entities and keep test questions separate. (b) Load the pinned Llama checkpoint and record answer probabilities and internal activations. (c) Fit and certify an external error filter. (d) Copy activations between matched real and invented prompts to find the abstention heads. (e) Use semantic entropy and a separate circuit readout to choose how strongly to steer those heads, then let the model choose its own answer. (f) Evaluate the filter and steering separately on held-out questions. Question cards, probability bars and activation grids are schematic; the numerical findings come from saved runs. Gap restoration measures a change in log probabilities, not the fraction of answers changed to E.*
+
+[Open PNG](figures/f00_methodology_overview.png) · [Download PDF](figures/f00_methodology_overview.pdf) · [Prompts, sources and checks](figures/methodology-overview.md)
+
 The work followed four steps, all using the same language model:
 
 1. Build an external filter that estimates whether an answer is wrong, then check whether the answers it releases meet a preset error target.
 2. Find parts of the model that affect its tendency to say "I don't know" by copying internal activations between matched questions.
 3. Use semantic entropy to decide when to change those parts, so the model chooses "I don't know" itself.
 4. Test whether several entropy thresholds and a signal from those parts give a better balance between avoiding wrong answers and keeping correct ones.
-
-```mermaid
-flowchart TD
-    D["Data<br/>10,000 MedQA questions<br/>1,500 invented-entity questions<br/>225 matched real and invented pairs"]
-    M["Llama 3.1 8B Instruct<br/>one forward pass per prompt<br/>letter probabilities and activations at the last token"]
-    D --> M
-    M --> E1["Experiment 1<br/>Certified external gate<br/>probe, calibration, LTT certificate"]
-    M --> E2["Experiment 2<br/>Abstention circuit<br/>activation patching on matched pairs"]
-    E2 --> E3["Experiment 3<br/>SE-gated steering<br/>of the circuit heads"]
-    E3 --> E4["Experiment 4<br/>Tiered SE steering<br/>with a circuit-readout trigger"]
-    E1 --> R1["RQ1"]
-    E2 --> R2["RQ2"]
-    E3 --> R3["RQ3"]
-    E4 --> R3
-```
 
 ### Model, prompts and data
 
@@ -519,7 +510,7 @@ Run the commands from the repository root. Set [`HF_HOME`](https://huggingface.c
 | Experiment 1, second run | `python -m uncertainty_mech run --config configs/health_full_run.toml` | about 30 min |
 | Experiments 2 to 4 | `python -m uncertainty_mech circuits --config configs/circuit_study.toml` | about 1 hour |
 | Experiment 4 alone, from saved vectors | `python -m uncertainty_mech tiers --config configs/tiers.toml` | about 15 min |
-| Figures in this document | `python scripts/research_figures.py` | under 1 min |
+| Result figures in this document | `python scripts/research_figures.py` | under 1 min |
 
 Run outputs are saved under `runs/`. This directory is excluded from version control because the second run's saved activations occupy 5.8 GB. The figures in this document are tracked.
 

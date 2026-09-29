@@ -1,0 +1,65 @@
+# Illustrated methodology overview
+
+The figure follows the completed study from acquiring questions and a model checkpoint to evaluating an external filter and an intervention inside the model. It replaces the overview chart in the [research README](../README.md#methodology).
+
+The [PNG](f00_methodology_overview.png) is the selected imagegen output, copied without changing its pixels. The [PDF](f00_methodology_overview.pdf) embeds the same image without resampling or lossy compression. The native image is 1,024 × 1,536 pixels. The PDF is 6.9 × 10.35 inches; its effective image resolution is about 148 pixels per inch. View the PNG at full size to read the smaller labels. The PDF export does not increase the source resolution.
+
+## Scientific content
+
+The panels show two experimental branches. The external filter in (c) estimates error risk and decides whether to release an answer. The circuit study in (d) identifies heads through activation patching; (e) steers those heads so the model chooses its own answer. The branches meet at held-out evaluation in (f).
+
+The main pool contains 10,000 real MedQA questions and 1,500 invented-entity questions. Its test split contains 2,388 questions: 2,091 real and 297 invented. The matched-pair set is separate: 75 facts with three invented counterparts each give 225 pairs, or 450 prompts. Circuit selection uses 126 discovery pairs and validation uses 99 test pairs.
+
+Semantic entropy uses the normalized probabilities of A to D from the forced-choice prompt. The circuit readout comes from a separate, unsteered prompt that offers option E. It sums each selected head's projection onto its unit steering direction. The steering vectors are mean invented-prompt activations minus mean real-prompt activations, fitted on discovery pairs. A selected dose multiplies each vector before addition to L15.H4 and L17.H25 at the final prompt token. Llama's weights stay fixed.
+
+Question cards, model stacks, head grids, probability bars, calibration sketches and interval glyphs illustrate operations. They are not additional measured distributions or empirical heatmaps. The question-card snippets illustrate the prompt format rather than identify stored dataset rows. The Atorvastatin/Beleprax cards abbreviate the four inhibition mechanisms in the README's prompt example. The 51.0% restoration result is a fraction of the abstention gap recovered by patching, not a percentage of answers changed to E. The +0.001-nat SE change applies to the invented-into-real patch direction.
+
+## Sources
+
+| Content | Source |
+|---|---|
+| Model and data revisions, sample sizes and main split settings | [`health_full_run.toml`](../../../configs/health_full_run.toml) |
+| Matched-pair construction and discovery/test split | [`entity_pairs.py`](../../../src/uncertainty_mech/infrastructure/entity_pairs.py), [`known_facts.py`](../../../src/uncertainty_mech/infrastructure/known_facts.py), [`circuit_study.toml`](../../../configs/circuit_study.toml) |
+| Forward hooks and activation intervention | [`hf_model.py`](../../../src/uncertainty_mech/infrastructure/hf_model.py) |
+| Patching and steering-vector construction | [`patching.py`](../../../src/uncertainty_mech/application/patching.py) |
+| SE-triggered steering and the external SE comparison | [`se_steering.py`](../../../src/uncertainty_mech/application/se_steering.py) |
+| Separate readout pass, tier selection and bootstrap comparisons | [`tiered_steering.py`](../../../src/uncertainty_mech/application/tiered_steering.py), [`tiers.toml`](../../../configs/tiers.toml) |
+| Filter coverage, selective risk and upper bound | `runs/health-llama31-8b-full-run/metrics.csv` |
+| Test question counts | `runs/health-llama31-8b-full-run/test_predictions.csv` |
+| Head selection, restoration and SE change | `runs/circuit-se-steering/circuit.json`, `circuit_validation.csv` in the same directory |
+| Utility differences and confidence intervals | `runs/circuit-se-steering/tiers_comparisons.csv` |
+| Contribution of real and invented questions to utility gains | `runs/circuit-se-steering/tiers_predictions.csv` |
+
+The saved `runs/` files are local experiment outputs and are excluded from version control. Their hashes and the values used in the illustration are recorded in [`methodology-overview.provenance.json`](methodology-overview.provenance.json).
+
+## Generation
+
+The rendering used the built-in imagegen tool. The local `paperbanana` launcher failed with `ModuleNotFoundError: No module named 'paperbanana'`, so the PaperBanana CLI did not run. Planning, styling and visual review were carried out inline using the reference–plan–style–render–critique sequence described in [PaperBanana](https://github.com/dwzhu-pku/PaperBanana). The style reference was its [diagram style guide](https://github.com/dwzhu-pku/PaperBanana/blob/main/style_guides/neurips2025_diagram_style_guide.md).
+
+The stored prompts record the render and its revisions:
+
+1. [Initial scientific and visual specification](methodology-overview.prompt.txt).
+2. [Larger portrait layout and scientific corrections](methodology-overview.edit-prompt.txt).
+3. [Branch connections, activation-copy arrows and readout glyph](methodology-overview.final-edit-prompt.txt).
+4. [Final connector cleanup](methodology-overview.connector-edit-prompt.txt).
+
+The prompts can be used again with imagegen. Generated images can vary between runs. No new experiment, model fine-tuning or statistical estimation was performed to produce this illustration.
+
+## Checks
+
+The visual review checked the two experimental branches, the matched-pair comparison, the direction of activation transfer, the invented-minus-real subtraction, the separate entropy and readout passes, the option-E prompt during steering, the two head names and the fixed-weight model. It also checked the distinction between probability spread and vector projection.
+
+The numerical review compared the figure's labels with saved run tables, including the full-pool and test counts, filter metrics, patch restoration, direction-specific SE change, utility differences and confidence intervals. The PNG and PDF were checked for matching pixels, and the README's asset links were checked on disk. Resolution is reported above rather than inferred from the requested render size.
+
+## LaTeX inclusion
+
+Use the PDF as a full-page methods figure. The image is raster content inside a PDF container.
+
+```latex
+\begin{figure*}[p]
+  \centering
+  \includegraphics[width=\textwidth,height=0.92\textheight,keepaspectratio]{f00_methodology_overview.pdf}
+  \caption{Overview of the medical-question abstention study. Data acquisition and frozen-model inference feed two branches: an external error filter and a circuit intervention controlled by semantic entropy and a separate readout. Both are evaluated on held-out questions. Illustrations are schematic; numerical labels summarize saved experiments.}
+  \label{fig:abstention-methodology}
+\end{figure*}
+```

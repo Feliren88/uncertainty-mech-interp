@@ -1,0 +1,223 @@
+{
+  "artifact_id": "methodology-overview",
+  "created_date": "2026-09-30",
+  "rendering": {
+    "tool": "built-in imagegen",
+    "generations": 1,
+    "targeted_edits": 3,
+    "paperbanana_cli_executed": false,
+    "paperbanana_cli_error": "ModuleNotFoundError: No module named 'paperbanana'",
+    "paperbanana_workflow_applied_inline": true,
+    "style_reference": "https://github.com/dwzhu-pku/PaperBanana/blob/main/style_guides/neurips2025_diagram_style_guide.md",
+    "native_size_px": [
+      1024,
+      1536
+    ],
+    "pdf_size_inches": [
+      6.9,
+      10.35
+    ],
+    "pdf_conversion": "lossless PNG embedding using PyMuPDF; no resampling",
+    "effective_pdf_pixels_per_inch": 148.41
+  },
+  "artifacts": [
+    {
+      "file": "docs/research/figures/f00_methodology_overview.png",
+      "sha256": "b999f7f8cbabca69ec29e8692448182dd402f0795a6b2dcb886861aafd64b8b6"
+    },
+    {
+      "file": "docs/research/figures/f00_methodology_overview.pdf",
+      "sha256": "60e7765b37c034c64a23db94235551d770a67fc24c5e805060ec2c42bd6cf731"
+    }
+  ],
+  "prompts_in_execution_order": [
+    {
+      "file": "docs/research/figures/methodology-overview.prompt.txt",
+      "sha256": "2ecae87b77f07269663dbac34a103e44df49659bece5fe388c8b59e3c158beaa"
+    },
+    {
+      "file": "docs/research/figures/methodology-overview.edit-prompt.txt",
+      "sha256": "f5844a085671d8cf4040806285b2614c408b9181d0b1560251093a19ad111cfd"
+    },
+    {
+      "file": "docs/research/figures/methodology-overview.final-edit-prompt.txt",
+      "sha256": "de0fd1f7ca0c04a79116f970150a6e0c0e1251f3e972d08fa1b1c8b6f1691376"
+    },
+    {
+      "file": "docs/research/figures/methodology-overview.connector-edit-prompt.txt",
+      "sha256": "2224c16d8ab19a1635606c9fc37436c54c0c16f4eaa24e95c704a624be5fb1e7"
+    }
+  ],
+  "source_data": [
+    {
+      "file": "configs/health_full_run.toml",
+      "sha256": "714ef31208e1e2d2eefcb82453fbc54a3b717111068cdfa9c3ab5058f35158b7"
+    },
+    {
+      "file": "configs/circuit_study.toml",
+      "sha256": "30d489776af7601ad9a6fac944aa94ee1ca881023630c03342892faef53a7f43"
+    },
+    {
+      "file": "configs/tiers.toml",
+      "sha256": "df934da89b0b36fdb08f330130a80edec2fcb4620c5680b7eed88dc5decb7380"
+    },
+    {
+      "file": "src/uncertainty_mech/application/patching.py",
+      "sha256": "44191c4c58dd935f25e13d1e60d36d91c255914a31e9505068bdfa850416bc85"
+    },
+    {
+      "file": "src/uncertainty_mech/application/se_steering.py",
+      "sha256": "2bcf21ff7dacaebabbed4335c0581590c68c3d20daada3474603c67d00d42fd2"
+    },
+    {
+      "file": "src/uncertainty_mech/application/tiered_steering.py",
+      "sha256": "505443f840518d1d48c21301d185f706b0b0ec207a9e9ef94d668a091a832ca3"
+    },
+    {
+      "file": "runs/health-llama31-8b-full-run/items.csv",
+      "sha256": "641e94bc7a9dfc0b754badefe9e9d113119463b40ed3fd2ebef222b8f6f7204d"
+    },
+    {
+      "file": "runs/health-llama31-8b-full-run/test_predictions.csv",
+      "sha256": "027e7358083e4fffd22a61cc10286d490e9f697139ed7d1a23e7d499039c8e40"
+    },
+    {
+      "file": "runs/health-llama31-8b-full-run/metrics.csv",
+      "sha256": "48243f9cc0a619386ba792985b509e803e5c6c50b54a2e381ecfe48c9f7ea90a"
+    },
+    {
+      "file": "runs/circuit-se-steering/circuit.json",
+      "sha256": "62b90fde6ceb87ed0df81b0317f2f4687a64106c9cf2f103c0c7960b0e9b8f31"
+    },
+    {
+      "file": "runs/circuit-se-steering/pairs.csv",
+      "sha256": "c7c535ba060b217a7527f129ad09518898c75c9616d89858213a1ae508195f5f"
+    },
+    {
+      "file": "runs/circuit-se-steering/circuit_validation.csv",
+      "sha256": "19267d9fe2846ad03b0477595c592a315558d3ac3b57a601de055639b7c1947f"
+    },
+    {
+      "file": "runs/circuit-se-steering/tiers_comparisons.csv",
+      "sha256": "14caba7fe7fb41a5e6b548aa76aa265a53bf9dfe0cb496759011520f2fd98fe8"
+    },
+    {
+      "file": "runs/circuit-se-steering/tiers_predictions.csv",
+      "sha256": "142eeacf02d523be801f0ab5b28e224e4ef5fbb879b027db7a910232dfea91dc"
+    }
+  ],
+  "verified_values": {
+    "n_real": 10000,
+    "n_invented": 1500,
+    "n_main_pool": 11500,
+    "n_test": 2388,
+    "n_test_real": 2091,
+    "n_test_invented": 297,
+    "matched_pairs": {
+      "facts": 75,
+      "names_per_fact": 3,
+      "pairs": 225,
+      "prompts": 450,
+      "discovery_pairs": 126,
+      "test_pairs": 99
+    },
+    "model_name": "meta-llama/Llama-3.1-8B-Instruct",
+    "model_revision": "0e9e39f249a16976918f6564b8830bc894c89659",
+    "selected_heads": [
+      [
+        15,
+        4
+      ],
+      [
+        17,
+        25
+      ]
+    ],
+    "filter": {
+      "coverage": 0.3119765494137353,
+      "selective_risk": 0.05906040268456376,
+      "risk_upper_95": 0.07529012705454381
+    },
+    "invented_into_real_patch": {
+      "restoration_gap": 0.5095470933986207,
+      "delta_se": 0.0010884547762333979
+    },
+    "random_heads_mean_gap_restoration": -0.019192221110739916,
+    "utility_vs_se_wrapper": [
+      {
+        "wrong_cost": 1.0,
+        "difference": 0.008375209380234505,
+        "low_95": -0.007977331036738438,
+        "high_95": 0.024467691925952766
+      },
+      {
+        "wrong_cost": 2.0,
+        "difference": 0.03433835845896147,
+        "low_95": 0.014461104191013359,
+        "high_95": 0.05449496393521136
+      },
+      {
+        "wrong_cost": 4.0,
+        "difference": 0.046063651591289785,
+        "low_95": 0.018825556655330523,
+        "high_95": 0.07202135926192134
+      }
+    ],
+    "utility_point_gain_by_stratum": {
+      "2": {
+        "real": 28,
+        "invented": 54
+      },
+      "4": {
+        "real": 26,
+        "invented": 84
+      }
+    },
+    "bootstrap_resamples": 2000
+  },
+  "visual_review": {
+    "performed": true,
+    "reviewer": "inline visual inspection",
+    "checked": [
+      "data totals and split separation",
+      "matched pairs separate from main pool",
+      "zero-indexed decoder layers",
+      "fixed model weights",
+      "independent external filter and circuit branches",
+      "invented-into-real and reverse activation transfer",
+      "invented-minus-real vector subtraction",
+      "correct head labels",
+      "distinct forced-choice and option-E readout passes",
+      "option-E prompt during steering",
+      "gap restoration distinguished from answer flips",
+      "vector projection distinguished from probability bars",
+      "saved-result labels and confidence intervals"
+    ]
+  },
+  "figure_table_trace": [
+    {
+      "artifact_id": "methodology-overview",
+      "source_data": {
+        "dataset_id": "health-llama31-8b-full-run and circuit-se-steering",
+        "file": "runs/health-llama31-8b-full-run/metrics.csv; runs/circuit-se-steering/circuit_validation.csv; runs/circuit-se-steering/tiers_comparisons.csv"
+      },
+      "transformation": {
+        "manual_derivation": "Read combined/all filter row; circuit/invented_into_real validation row and mean of random/invented_into_real rows; tiered_readout vs se_wrapper utility rows. Display filter and restoration as percentages to one decimal; entropy and utility/interval values to three decimals. Illustrate the source-code operations with the stored prompts in execution order."
+      },
+      "caption_claim": "Data acquisition and frozen-model inference feed an external error filter and an activation-based intervention; both are evaluated on held-out questions.",
+      "supported_manuscript_claims": [
+        {
+          "claim": "The illustrated methodology covers acquisition, grouped data splits, frozen-model inference, external filtering, activation patching, entropy-controlled steering and held-out evaluation.",
+          "locator": "docs/research/README.md: Methodology / Overview"
+        }
+      ],
+      "limitations": [
+        "The figure is a schematic, not new evidence or a new experiment.",
+        "Question-card snippets and probability/head glyphs do not identify stored dataset rows or measured distributions.",
+        "The native image is 1024 by 1536 pixels; the PDF export does not add resolution.",
+        "Results concern one model and a multiple-choice setting; most steering gains come from invented-entity questions.",
+        "Only the invented-into-real patch direction supports the displayed +0.001-nat SE change."
+      ]
+    }
+  ]
+}
