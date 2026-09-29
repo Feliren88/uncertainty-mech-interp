@@ -102,7 +102,7 @@ flowchart TD
 
 ### Model, prompts and data
 
-The model was [Llama 3.1 8B Instruct](https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct) ([Grattafiori et al., 2024](https://arxiv.org/abs/2407.21783)), revision [`0e9e39f2`](https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct/tree/0e9e39f249a16976918f6564b8830bc894c89659), run in [bfloat16](https://cloud.google.com/tpu/docs/bfloat16) on one [NVIDIA A100 80 GB](https://www.nvidia.com/en-us/data-center/a100/) GPU. The RFC specified [Gemma 2 2B](https://huggingface.co/google/gemma-2-2b) ([Gemma Team, 2024](https://arxiv.org/abs/2408.00118)), but the account had not accepted its licence, so checkpoint access failed with [HTTP 403](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/403).
+The model was [Llama 3.1 8B Instruct](https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct) ([Grattafiori et al., 2024](https://arxiv.org/abs/2407.21783)), revision [`0e9e39f2`](https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct/tree/0e9e39f249a16976918f6564b8830bc894c89659), run in [bfloat16](https://cloud.google.com/tpu/docs/bfloat16) on one [NVIDIA A100 80 GB](https://www.nvidia.com/en-us/data-center/a100/) GPU.
 
 Each question had four answer options, A to D. After applying the model's [chat template](https://huggingface.co/docs/transformers/chat_templating), one forward pass gave the next-token probabilities of those letters. Selecting the most probable letter allowed exact grading without a judge model.
 
